@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local environment files (keep examples committed)
+.env*
+!.env.example
+!.env.postgres.example
+
+# Next.js / build outputs
+.next/
+.vercel/
+
+# Postgres local data
+pgdata
