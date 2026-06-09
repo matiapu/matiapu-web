@@ -1,3 +1,16 @@
+### コミットメッセージ命名規則
+
+| Type | 説明 | 具体例 |
+| :--- | :--- | :--- |
+| `feat` | 新機能の追加 | `feat: ログイン機能の実装` |
+| `fix` | バグ修正 | `fix: フォームのバリデーションエラーを修正` |
+| `docs` | ドキュメントの変更（READMEなど） | `docs: コミット規約をREADMEに追加` |
+| `style` | コードの意味に影響を与えない変更（フォーマット、空白、セミコロンなど） | `style: Prettierによるコード整形` |
+| `refactor` | バグ修正や機能追加を含まないコードの修正（リファクタリング） | `refactor: コンポーネントの共通化` |
+| `perf` | パフォーマンス向上のためのコード変更 | `perf: 画像の遅延読み込みを導入` |
+| `test` | テストコードの追加・修正 | `test: ユーザー認証のユニットテストを追加` |
+| `chore` | ビルドプロセスや補助ツールの変更（ライブラリ追加、設定変更など） | `chore: パッケージのアップデート` |
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
