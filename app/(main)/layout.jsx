@@ -1,8 +1,12 @@
 import React from 'react'
 
-function layout() {
+function layout({children}) {
   return (
-    <div>layout</div>
+    <div>
+      <main>
+        {children}
+      </main>
+    </div>
   )
 }
 
