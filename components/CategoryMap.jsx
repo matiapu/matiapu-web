@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
+import styles from './CategoryMap.module.css';
 
 // ダミーデータを返す関数 (後でAPI呼び出しに置き換え可能)
 const getLocationsData = async () => {
@@ -32,15 +33,18 @@ function CategoryMap() {
   const [locations, setLocations] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // コンポーネントマウント時にデータ取得
   useEffect(() => {
     const loadLocations = async () => {
       try {
+        setError(null);
         const data = await getLocationsData();
         setLocations(data);
       } catch (error) {
         console.error('位置情報の取得に失敗しました:', error);
+        setError('位置情報の読み込みに失敗しました。ページを再度読み込んでしてください。');
       } finally {
         setLoading(false);
       }
@@ -50,7 +54,19 @@ function CategoryMap() {
   }, []);
 
   if (loading) {
-    return <div>読み込み中...</div>;
+    return <div className={styles.loading}>読み込み中...</div>;
+  }
+
+  if (error) {
+    return (
+      <div
+        className={styles.errorMessage}
+        role="alert"
+        aria-live="polite"
+      >
+        <strong>エラー:</strong> {error}
+      </div>
+    );
   } 
 
 
@@ -65,35 +81,16 @@ function CategoryMap() {
   );
 
   return (
-    <div style={{ width: '100%', position: 'relative' }}>
+    <div className={styles.container}>
       {/* カテゴリボタンセクション */}
-      <div style={{ 
-        position: 'absolute',
-        top: '20px',
-        left: '20px',
-        zIndex: 10,
-        display: 'flex', 
-        gap: '10px', 
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        padding: '15px 20px',
-        borderRadius: '8px',
-        // boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
-      }}>
+      <div className={styles.buttonSection}>
         
         {/* すべて表示ボタン */}
         <button
           onClick={() => setSelectedCategory(null)}
-          style={{
-            padding: '10px 30px',
-            backgroundColor: selectedCategory === null ? '#333' : '#ccc',
-            color: selectedCategory === null ? '#fff' : '#000',
-            border: 'none',
-            borderRadius: '20px',
-            cursor: 'pointer',
-            fontWeight: selectedCategory === null ? 'bold' : 'normal',
-            transition: 'all 0.2s ease'
-          }}
+          className={styles.allButton}
+          aria-label="すべてのカテゴリを表示"
+          aria-pressed={selectedCategory === null}
         >
           すべて
         </button>
@@ -107,15 +104,14 @@ function CategoryMap() {
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
+              className={`${styles.categoryButton} ${isSelected ? '' : styles.categoryButtonInactive}`}
+              aria-label={`${style.label}を表示`}
+              aria-pressed={isSelected}
               style={{
-                padding: '10px 30px',
                 backgroundColor: isSelected ? style.background : '#ffffffc7',
                 color: isSelected ? '#fff' : '#000',
-                border: `2px solid ${style.background}`,
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontWeight: isSelected ? 'bold' : 'normal',
-                transition: 'all 0.2s ease'
+                borderColor: style.background,
+                fontWeight: isSelected ? 'bold' : 'normal'
               }}
             >
               {style.label}
@@ -125,7 +121,7 @@ function CategoryMap() {
       </div>
       
       <APIProvider apiKey={API_KEY}>
-        <div style={{ height: '600px', width: '100%', position: 'relative' }}>
+        <div className={styles.mapContainer}>
           
           <Map
             defaultCenter={{ lat: 35.681228, lng: 139.767052 }}
