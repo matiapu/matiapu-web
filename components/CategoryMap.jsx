@@ -4,17 +4,17 @@ import React, { useState } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 
 const locationsFromDB = [
-  { name: "おしゃれカフェA", lat: 35.681228, lng: 139.767052, category: "cafe" },
-  { name: "ラーメン店B", lat: 35.683500, lng: 139.765000, category: "food" },
-  { name: "緑の公園C", lat: 35.678000, lng: 139.769000, category: "park" },
-  { name: "静かなカフェD", lat: 35.685000, lng: 139.771000, category: "cafe" },
+  { name: "おしゃれカフェA", lat: 35.681228, lng: 139.767052, category: "disaster" },
+  { name: "ラーメン店B", lat: 35.683500, lng: 139.765000, category: "road" },
+  { name: "緑の公園C", lat: 35.678000, lng: 139.769000, category: "shop" },
+  { name: "静かなカフェD", lat: 35.685000, lng: 139.771000, category: "disaster" },
   { name: "通報エリアA", lat: 35.682000, lng: 139.768000, category: "report" }
 ];
 
 const categoryStyles = {
-  cafe: { background: "#8B4513", glyph: "🔥", label: "災害" },
-  food: { background: "#FF8C00", glyph: "🚗", label: "道路" },
-  park: { background: "#2E8B57", glyph: "🏪", label: "お店" },
+  disaster: { background: "#8B4513", glyph: "🔥", label: "災害" },
+  road: { background: "#FF8C00", glyph: "🚗", label: "道路" },
+  shop: { background: "#2E8B57", glyph: "🏪", label: "お店" },
   report: { background: "#FF0000", glyph: "📞", label: "通報" },
   default: { background: "#808080", glyph: "？", label: "その他" }
 };
