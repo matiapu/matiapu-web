@@ -1,15 +1,22 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 
-const locationsFromDB = [
-  { name: "おしゃれカフェA", lat: 35.681228, lng: 139.767052, category: "disaster" },
-  { name: "ラーメン店B", lat: 35.683500, lng: 139.765000, category: "road" },
-  { name: "緑の公園C", lat: 35.678000, lng: 139.769000, category: "shop" },
-  { name: "静かなカフェD", lat: 35.685000, lng: 139.771000, category: "disaster" },
-  { name: "通報エリアA", lat: 35.682000, lng: 139.768000, category: "report" }
-];
+// ダミーデータを返す関数 (後でAPI呼び出しに置き換え可能)
+const getLocationsData = async () => {
+  // TODO: 後ほどここにAPI呼び出しを実装
+  // const response = await fetch('/api/locations');
+  // return response.json();
+  
+  return [
+    { name: "おしゃれカフェA", lat: 35.681228, lng: 139.767052, category: "disaster" },
+    { name: "ラーメン店B", lat: 35.683500, lng: 139.765000, category: "road" },
+    { name: "緑の公園C", lat: 35.678000, lng: 139.769000, category: "shop" },
+    { name: "静かなカフェD", lat: 35.685000, lng: 139.771000, category: "disaster" },
+    { name: "通報エリアA", lat: 35.682000, lng: 139.768000, category: "report" }
+  ];
+};
 
 const categoryStyles = {
   disaster: { background: "#8B4513", glyph: "🔥", label: "災害" },
@@ -22,17 +29,39 @@ const categoryStyles = {
 function CategoryMap() {
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
-  const [selectedCategory, setSelectedCategory] = useState(null); 
+  const [locations, setLocations] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // コンポーネントマウント時にデータ取得
+  useEffect(() => {
+    const loadLocations = async () => {
+      try {
+        const data = await getLocationsData();
+        setLocations(data);
+      } catch (error) {
+        console.error('位置情報の取得に失敗しました:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadLocations();
+  }, []);
+
+  if (loading) {
+    return <div>読み込み中...</div>;
+  } 
 
 
   // 表示するピンをフィルタリング
   const filteredLocations = selectedCategory 
-    ? locationsFromDB.filter(data => data.category === selectedCategory)
-    : locationsFromDB;
+    ? locations.filter(data => data.category === selectedCategory)
+    : locations;
 
   // ユニークなカテゴリ一覧を取得
   const uniqueCategories = Array.from(
-    new Set(locationsFromDB.map(data => data.category))
+    new Set(locations.map(data => data.category))
   );
 
   return (
