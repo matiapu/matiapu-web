@@ -1,9 +1,11 @@
+import CategoryMap from "@/components/CategoryMap"
 
 
 function page() {
-  return (
+  return (<>
     <h1>top</h1>
-  )
+    <CategoryMap />
+  </>)
 }
 
 export default page

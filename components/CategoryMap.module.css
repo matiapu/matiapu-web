@@ -1,0 +1,112 @@
+.container {
+  width: 100%;
+  position: relative;
+}
+
+.buttonSection {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 15px 20px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.button {
+  padding: 10px 30px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: normal;
+  transition: all 0.2s ease;
+}
+
+.allButton {
+  composes: button;
+  background-color: #ccc;
+  color: #000;
+}
+
+.allButton[aria-pressed="true"] {
+  background-color: #333;
+  color: #fff;
+  font-weight: bold;
+}
+
+.categoryButton {
+  composes: button;
+}
+
+.categoryButtonInactive {
+  background-color: rgba(255, 255, 255, 0.78);
+  color: #000;
+}
+
+.mapContainer {
+  height: calc(100vh - 120px);
+  min-height: 400px;
+  width: 100%;
+  position: relative;
+}
+
+.loading {
+  padding: 20px;
+  text-align: center;
+}
+
+.errorMessage {
+  padding: 20px;
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  color: #856404;
+  margin: 20px;
+}
+
+.errorMessage strong {
+  margin-right: 8px;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .buttonSection {
+    top: 10px;
+    left: 10px;
+    padding: 12px 15px;
+    gap: 8px;
+  }
+
+  .button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  .mapContainer {
+    height: calc(100vh - 100px);
+  }
+}
+
+@media (max-width: 480px) {
+  .buttonSection {
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .mapContainer {
+    height: calc(100vh - 80px);
+  }
+}
