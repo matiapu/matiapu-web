@@ -4,7 +4,7 @@ export default function UserIcon({ iconUrl, userName = "ユーザー" }) {
   return (
     <div className={styles.userIcon}>
       <img
-        src={iconUrl || "/default-user-icon.png"}
+        src={iconUrl || "../../public/user_icon/user_icon1.jpg"}
         alt={`${userName}のアイコン`}
         className={styles.iconImage}
       />
