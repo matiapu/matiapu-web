@@ -1,4 +1,5 @@
 import React from 'react'
+import PostCard from '../../../../src/components/PostCard';
 
 async function page({params}) {
   const { id } = await params;
@@ -12,7 +13,7 @@ async function page({params}) {
         tags:"災害",
         image:"/post_image/post_image1.jpg",
         createAt:"2026-06-10",
-        content:"本文",
+        content:"本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文",
         likes:"1",
         commentID:"comment1",
         postID: "post1",               // FK PostId
@@ -29,6 +30,7 @@ async function page({params}) {
         image:"/post_image/post_image2.jpg",
         createAt:"2026-06-10",
         content:"本文",
+        likes:"10",
         commentID:"comment1",
         postID: "post2",               // FK PostId
         userID: "user2",       // FK UserId（ログインユーザーのID）
@@ -44,6 +46,7 @@ async function page({params}) {
         image:"/post_image/post_image3.jpg",
         createAt:"2026-06-10",
         content:"本文",
+        likes:"50",
         commentID:"comment1",
         postID: "post3",               // FK PostId
         userID: "user3",       // FK UserId（ログインユーザーのID）
@@ -57,17 +60,7 @@ async function page({params}) {
 
   return (
     <div>
-      <p>{post.name}</p>
-      <img src={post.userIcon} alt="ユーザー画像" />
-      <p>{post.title}</p>
-      <p>{post.tags}</p>
-      <img src={post.image} alt="投稿画像" />
-      <p>{post.createAt}</p>
-      <p>{post.content}</p>
-      <p>{post.commentID}</p>
-      <p>{post.postID}</p>
-      <p>{post.userID}</p>
-      <p>{post.questionText}</p>
+      <PostCard post = {post} />
     </div>
   );
 }
