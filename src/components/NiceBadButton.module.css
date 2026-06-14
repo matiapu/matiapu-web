@@ -1,0 +1,28 @@
+.Button_wrapper {
+  display: flex;
+  width: 1000px;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+}
+
+.Up, .Down {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+.Up:hover, .Down:hover {
+  background-color: #d5d5d5; 
+}
+
+.Up:active, .Down:active {
+  transform: scale(0.96);
+}

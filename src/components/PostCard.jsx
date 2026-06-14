@@ -3,9 +3,10 @@ import React from 'react'
 import { useState } from 'react'
 import UserIcon from './UserIcon'
 import styles from './PostCard.module.css'
+import NiceBadButton from './NiceBadButton'
 
 
-function PostCard({post}) {
+function PostCard({ post }) {
     // 投稿が開いているかどうかを管理するステート（初期値は false = 閉じている
     const [isOpen, setIsOpen] = useState(false)
 
@@ -23,46 +24,50 @@ function PostCard({post}) {
     const toggleOpen = () => {
         setIsOpen(!isOpen)
     }
-  return (
-    <div className={styles.post_wrapper}>
-        {/* 投稿画像 */}
-        <img src={post.image} alt={`${post.name}さんの投稿画像`} className={styles.post_image}/>
+    return (
+        <div>
+            <div className={styles.post_wrapper}>
+                {/* 投稿画像 */}
+                <img src={post.image} alt={`${post.name}さんの投稿画像`} className={styles.post_image} />
 
-        {/* ユーザー情報 */}
-        <div className={styles.overlay}>
-            <div className={styles.user_info}>
-                <UserIcon iconUrl={post.userIcon} />
+                {/* ユーザー情報 */}
+                <div className={styles.overlay}>
+                    <div className={styles.user_info}>
+                        <UserIcon iconUrl={post.userIcon} />
 
-                <div className={styles.space}>
-                    <p className={styles.user_name}>
-                    {post.name}
-                    </p>
+                        <div className={styles.space}>
+                            <p className={styles.user_name}>
+                                {post.name}
+                            </p>
 
-                    <p>
-                    {post.createAt}
-                    </p>
+                            <p>
+                                {post.createAt}
+                            </p>
+                        </div>
+                    </div>
+
+                    <h2>{post.title}</h2>
+
+                    <span className={styles.tag}>
+                        {post.tags}
+                    </span>
+
+                    <div className={styles.content}>
+                        <p>{displayedContent}</p>
+
+                        {!isOpen && isLongContent && (
+                            <button onClick={toggleOpen}>
+                                続きを見る
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
-
-            <h2>{post.title}</h2>
-
-            <span className={styles.tag}>
-            {post.tags}
-            </span>
-
-            <div className={styles.content}>
-                <p>{displayedContent}</p>
-
-                {!isOpen && isLongContent && (
-                <button onClick={toggleOpen}>
-                続きを見る
-                </button>
-                )}
+            <div className={styles.NiceBadButton}>
+                <NiceBadButton />
             </div>
         </div>
-    </div>
-    
-  )
+    )
 }
 
 export default PostCard
