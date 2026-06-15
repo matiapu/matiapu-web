@@ -1,5 +1,6 @@
+import PostCard from '@/components/PostCard';
 import React from 'react'
-import PostCard from '../../../../src/components/PostCard';
+
 
 async function page({params}) {
   const { id } = await params;

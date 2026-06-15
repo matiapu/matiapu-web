@@ -1,9 +1,11 @@
 import CategoryMap from "@/components/CategoryMap"
+import Header from "@/components/Header"
+
 
 
 function page() {
   return (<>
-    <h1>top</h1>
+    <Header />
     <CategoryMap />
   </>)
 }
