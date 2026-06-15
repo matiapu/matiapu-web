@@ -1,0 +1,41 @@
+.profileContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* 中身の要素をすべて横方向の真ん中に寄せる */
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+
+.icon {
+    margin: 40px auto 20px auto; 
+    width: 300px !important;
+    height: 300px !important;
+}
+
+/* アカウント名と住所の文字調整 */
+.user_info {
+    text-align: center;
+    margin-bottom: 30px;
+}
+.name {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+.address {
+    color: #666;
+    font-size: 16px;
+}
+
+.postImageWrapper {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+.postImage {
+    object-fit: cover;
+}
