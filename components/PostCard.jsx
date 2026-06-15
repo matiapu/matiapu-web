@@ -29,7 +29,13 @@ function PostCard({ post }) {
         <div>
             <div className={styles.post_wrapper}>
                 {/* 投稿画像 */}
-                <Image src={post.image} alt={`${post.name}さんの投稿画像`} className={styles.post_image} />
+                <Image
+                    src={post.image}
+                    alt={`${post.name}さんの投稿画像`}
+                    fill
+                    sizes="100vw"
+                    className={styles.post_image}
+                />
 
                 {/* ユーザー情報 */}
                 <div className={styles.overlay}>

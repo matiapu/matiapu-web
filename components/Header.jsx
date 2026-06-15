@@ -10,16 +10,16 @@ export default function Header() {
         </div>
           <nav className={styles.nav}>
             <Link href="/" className={styles.navLink}>
-              <a>ホーム</a>
+              ホーム
             </Link>
             <Link href="/profile" className={styles.navLink}>
-              <a>プロフィール</a>
+              プロフィール
             </Link>
-            <Link href={'../../posts/1'} className={styles.navLink}>
-              <a>投稿</a>
+            <Link href="/posts/1" className={styles.navLink}>
+              投稿
             </Link>
             <Link href="/settings" className={styles.navLink}>
-              <a>設定</a>
+              設定
             </Link>
           </nav>
       </header>

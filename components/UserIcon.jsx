@@ -4,7 +4,13 @@ import Image from "next/image";
 export default function UserIcon({ iconUrl, userName = "ユーザー" }) {
   return (
     <div className={styles.userIcon}>
-      <Image src={iconUrl || "../../public/user_icon/user_icon1.jpg"} alt={`${userName}のアイコン`} className={styles.iconImage} />
+      <Image
+        src={iconUrl || '/user_icon/user_icon1.jpg'}
+        alt={`${userName}のアイコン`}
+        fill
+        sizes="64px"
+        className={styles.iconImage}
+      />
     </div>
   );
 }
