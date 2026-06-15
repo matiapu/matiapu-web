@@ -4,6 +4,7 @@ import { useState } from 'react'
 import UserIcon from './UserIcon'
 import styles from './PostCard.module.css'
 import NiceBadButton from './NiceBadButton'
+import Image from 'next/image'
 
 
 function PostCard({ post }) {
@@ -28,7 +29,7 @@ function PostCard({ post }) {
         <div>
             <div className={styles.post_wrapper}>
                 {/* 投稿画像 */}
-                <img src={post.image} alt={`${post.name}さんの投稿画像`} className={styles.post_image} />
+                <Image src={post.image} alt={`${post.name}さんの投稿画像`} className={styles.post_image} />
 
                 {/* ユーザー情報 */}
                 <div className={styles.overlay}>
