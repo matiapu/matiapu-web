@@ -1,70 +1,55 @@
+"use client";
+
+import React, { use } from 'react';
+import { useRouter } from 'next/navigation';
 import PostCard from '@/components/PostCard';
-import React from 'react'
+import { POSTS } from '@/data/posts';
 
+// Re-export POSTS to maintain backward compatibility with other files importing it from here
+export { POSTS };
 
-export const POSTS = [
-  {
-    id:1,
-    name:"佐々木 太郎",
-    address:"東京都新宿区",
-    userIcon:"/user_icon/user_icon1.jpg",
-    title:"test",
-    tags:"災害",
-    image:"/post_image/post_image1.jpg",
-    createAt:"2026-06-10",
-    content:"本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文",
-    likes:"1",
-    commentID:"comment1",
-    postID: "post1",               
-    userID: "user1",       
-    questionText: "質問です",     
-    answerText: null,  
-  },
-  {
-    id:2,
-    name:"佐々木 太郎",
-    userIcon:"/user_icon/user_icon2.jpg",
-    title:"わああああ",
-    tags:"災害",
-    image:"/post_image/post_image2.jpg",
-    createAt:"2026-06-10",
-    content:"本文",
-    likes:"10",
-    commentID:"comment1",
-    postID: "post2",               
-    userID: "user2",       
-    questionText: "今日は暑いです。",     
-    answerText: null,  
-  },
-  {
-    id:3,
-    name:"佐々木 太郎",
-    userIcon:"/user_icon/user_icon3.jpg",
-    title:"test",
-    tags:"災害",
-    image:"/post_image/post_image3.jpg",
-    createAt:"2026-06-10",
-    content:"本文",
-    likes:"50",
-    commentID:"comment1",
-    postID: "post3",               
-    userID: "user3",       
-    questionText: "今日も元気",     
-    answerText: null,  
+function Page({ params }) {
+  const { id } = use(params);
+  const router = useRouter();
+
+  const currentId = Number(id);
+  const currentIndex = POSTS.findIndex((p) => p.id === currentId);
+  const post = POSTS[currentIndex];
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      router.push(`/posts/${POSTS[currentIndex - 1].id}`);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < POSTS.length - 1) {
+      router.push(`/posts/${POSTS[currentIndex + 1].id}`);
+    }
+  };
+
+  const disablePrevious = currentIndex <= 0;
+  const disableNext = currentIndex >= POSTS.length - 1;
+
+  if (!post) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center' }}>
+        <p>投稿が見つかりませんでした。</p>
+      </div>
+    );
   }
-];
-
-async function page({params}) {
-  const { id } = await params;
-
-  // データの検索は、関数の内側で実行します
-  const post = POSTS.find((p) => p.id === Number(id));
 
   return (
     <div>
-      <PostCard post={post} />
+      <PostCard
+        post={post}
+        onPreviousPost={handlePrevious}
+        onNextPost={handleNext}
+        disablePrevious={disablePrevious}
+        disableNext={disableNext}
+      />
     </div>
   );
 }
 
-export default page
+export default Page;

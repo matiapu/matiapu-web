@@ -2,7 +2,7 @@ import React from 'react'
 import Image from 'next/image'
 import styles from '@/components/PostImage.module.css'
 
-import { POSTS } from '@/app/(main)/posts/[id]/page' 
+import { POSTS } from '@/data/posts' 
 
 function PostImage() {
   const post = POSTS[0];

@@ -7,7 +7,7 @@ import NiceBadButton from './NiceBadButton'
 import Image from 'next/image'
 
 
-function PostCard({ post }) {
+function PostCard({ post, onPreviousPost, onNextPost, disablePrevious, disableNext }) {
     // 投稿が開いているかどうかを管理するステート（初期値は false = 閉じている
     const [isOpen, setIsOpen] = useState(false)
 
@@ -71,7 +71,12 @@ function PostCard({ post }) {
                 </div>
             </div>
             <div className={styles.NiceBadButton}>
-                <NiceBadButton />
+                <NiceBadButton
+                  onPrevious={onPreviousPost}
+                  onNext={onNextPost}
+                  disablePrevious={disablePrevious}
+                  disableNext={disableNext}
+                />
             </div>
         </div>
     )

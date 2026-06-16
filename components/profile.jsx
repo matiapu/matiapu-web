@@ -3,7 +3,7 @@ import UserIcon from './UserIcon'
 import styles from '@/components/profile.module.css'
 import PostImage from './PostImage'
 
-import { POSTS } from '@/app/(main)/posts/[id]/page' 
+import { POSTS } from '@/data/posts' 
 
 function profile() {
     const post = POSTS[0];
