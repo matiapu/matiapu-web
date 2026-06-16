@@ -1,0 +1,121 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+
+.card {
+  width: 100%;
+  background: transparent; /* 背景なし */
+  border: none; /* 枠線なし */
+  padding: 40px 20px;
+  text-align: center;
+  box-shadow: none; /* 影なし */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.title {
+  color: #1a202c; /* スッキリしたダークグレー */
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0 0 32px 0; /* ボタンとの間隔を確保 */
+  letter-spacing: -0.01em;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.primaryButton, .secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  gap: 8px;
+}
+
+.primaryButton {
+  background: #f7e02a; /* 街アプテーマカラーの黄色 */
+  color: #1a202c;
+  border: 1px solid #dfc91c;
+}
+
+.primaryButton:hover {
+  background: #ecd41e;
+  transform: translateY(-1px);
+}
+
+.primaryButton:active {
+  transform: translateY(0);
+}
+
+.secondaryButton {
+  background: transparent; /* 背景なし */
+  color: #4a5568;
+  border: 1px solid #cbd5e1; /* シンプルなグレー枠線 */
+}
+
+.secondaryButton:hover {
+  background: #f8fafc; /* ごく薄いグレーホバー */
+  transform: translateY(-1px);
+}
+
+.secondaryButton:active {
+  transform: translateY(0);
+}
+
+.buttonIcon {
+  font-size: 0.95rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 30px 10px;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+  
+  .buttonGroup {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+  
+  .primaryButton, .secondaryButton {
+    width: 100%;
+  }
+}

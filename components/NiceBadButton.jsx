@@ -14,7 +14,7 @@ function NiceBadButton({ onPrevious, onNext, disablePrevious, disableNext }) {
               className={styles.Up}
               onClick={onNext}
               disabled={disableNext}
-              aria-label="次の投稿を表示"
+              aria-label="いいねして次の投稿を表示"
             >
               <FontAwesomeIcon icon={ faThumbsUp } />
             </button>
@@ -23,7 +23,7 @@ function NiceBadButton({ onPrevious, onNext, disablePrevious, disableNext }) {
               className={styles.Down}
               onClick={onPrevious}
               disabled={disablePrevious}
-              aria-label="前の投稿を表示"
+              aria-label="よくないねして次の投稿を表示"
             >
               <FontAwesomeIcon icon={ faThumbsDown } />
             </button>
