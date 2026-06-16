@@ -5,7 +5,6 @@ import Profile from '@/components/profile'
 function page() {
   return (
     <div>
-      <Header />
       <Profile />
     </div>
   )
