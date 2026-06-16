@@ -18,6 +18,9 @@ export default function Header() {
             <Link href="/posts/1" className={styles.navLink}>
               投稿
             </Link>
+            <Link href="/profile/likes" className={styles.navLink}>
+              いいね
+            </Link>
             <Link href="/settings" className={styles.navLink}>
               設定
             </Link>

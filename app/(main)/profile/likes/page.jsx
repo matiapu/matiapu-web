@@ -6,7 +6,6 @@ import PostImage from '@/components/PostImage'
 function page() {
   return (
     <div>
-      <Header />
       <Likes />
       <PostImage />
     </div>
