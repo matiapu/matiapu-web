@@ -1,7 +1,19 @@
+"use client";
+
 import styles from "./Header.module.css";
 import Link from 'next/link';
+import { useRouter } from "next/navigation";
 
 export default function Header() {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // セッションCookieを削除
+    document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+    router.push("/login");
+    router.refresh();
+  };
+
   return (
     <div>
       <header className={styles.header}>
@@ -24,6 +36,9 @@ export default function Header() {
             <Link href="/settings" className={styles.navLink}>
               設定
             </Link>
+            <button onClick={handleLogout} className={styles.logoutButton}>
+              ログアウト
+            </button>
           </nav>
       </header>
     </div>

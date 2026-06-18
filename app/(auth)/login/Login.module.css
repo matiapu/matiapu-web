@@ -1,0 +1,367 @@
+.pageWrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #f5f8ff 0%, #f0f3fe 100%);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #333333;
+}
+
+/* ヘッダー */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background-color: transparent;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.logoArea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  /* 中央に配置するための位置調整 */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.logoIcon {
+  width: 32px;
+  height: 32px;
+  background: radial-gradient(circle, #e0ebff 0%, #c2d8ff 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(194, 216, 255, 0.5);
+}
+
+.logoText {
+  font-size: 20px;
+  font-weight: 700;
+  color: #003db3;
+  letter-spacing: -0.5px;
+}
+
+.helpButton {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #666666;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.helpButton:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* メインコンテンツ */
+.mainContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.card {
+  background-color: #ffffff;
+  border: 1px solid #eaf0fc;
+  border-radius: 32px;
+  box-shadow: 0 12px 40px rgba(0, 82, 204, 0.04);
+  width: 100%;
+  max-width: 480px;
+  padding: 40px 48px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 32px 24px;
+    border-radius: 24px;
+  }
+}
+
+.titleArea {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #001f60;
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #7b8ab8;
+  margin: 0;
+}
+
+/* フォーム */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.forgotPassword {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0052cc;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.forgotPassword:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+.inputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  background-color: #f1f3fc;
+  border: 1px solid #e1e5f2;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 15px;
+  color: #1f2937;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.input::placeholder {
+  color: #a0aec0;
+}
+
+.input:focus {
+  border-color: #0052cc;
+  background-color: #ffffff;
+}
+
+.passwordInput {
+  padding-right: 48px; /* 目のアイコンのスペース */
+}
+
+.eyeButton {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #7b8ab8;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: color 0.2s;
+}
+
+.eyeButton:hover {
+  color: #0052cc;
+}
+
+/* ボタン */
+.submitButton {
+  background-color: #0052cc;
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  width: 100%;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 82, 204, 0.15);
+  transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+  margin-top: 10px;
+}
+
+.submitButton:hover {
+  background-color: #0040a3;
+  box-shadow: 0 6px 16px rgba(0, 82, 204, 0.25);
+}
+
+.submitButton:active {
+  transform: scale(0.98);
+}
+
+/* 区切り線 */
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 11px;
+  margin: 16px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.divider::before {
+  margin-right: 16px;
+}
+
+.divider::after {
+  margin-left: 16px;
+}
+
+/* ソーシャルログイン */
+.socialButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.socialButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 9999px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.2s, transform 0.1s, border-color 0.2s;
+}
+
+.googleButton {
+  background-color: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+}
+
+.googleButton:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.googleButton:active {
+  transform: scale(0.98);
+}
+
+.appleButton {
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+}
+
+.appleButton:hover {
+  background-color: #1f2937;
+}
+
+.appleButton:active {
+  transform: scale(0.98);
+}
+
+.socialIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* カードフッター */
+.cardFooter {
+  text-align: center;
+  margin-top: 32px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.signupLink {
+  color: #0052cc;
+  font-weight: 700;
+  text-decoration: none;
+  margin-left: 6px;
+  transition: opacity 0.2s;
+}
+
+.signupLink:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+/* ページフッター */
+.footer {
+  padding: 24px;
+  text-align: center;
+  font-size: 11px;
+  color: #9ca3af;
+  border-top: 1px solid #eaeaea;
+  background-color: transparent;
+}
+
+.footerLinks {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.footerLink {
+  color: #7b8ab8;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footerLink:hover {
+  color: #0052cc;
+  text-decoration: underline;
+}
+
+.copyright {
+  margin: 0;
+  color: #9ca3af;
+}
