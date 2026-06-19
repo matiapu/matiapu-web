@@ -26,3 +26,19 @@
 .navLink:hover {
   color: #0070f3;
 }
+
+.logoutButton {
+  color: #333333;
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  transition: color 0.2s;
+}
+
+.logoutButton:hover {
+  color: #ef4444;
+}
