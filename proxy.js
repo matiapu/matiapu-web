@@ -4,8 +4,8 @@ export function proxy(request) {
   const session = request.cookies.get('session');
   const { pathname } = request.nextUrl;
 
-  // ログインページへのアクセス
-  if (pathname === '/login') {
+  // ログイン不要でアクセス可能な認証関連ページ (ただし詳細は除く)
+  if (pathname === '/login' || pathname === '/signup') {
     // セッションがある場合はトップページにリダイレクト
     if (session) {
       return NextResponse.redirect(new URL('/', request.url));
@@ -13,8 +13,8 @@ export function proxy(request) {
     return NextResponse.next();
   }
 
+  // それ以外のすべての保護されたページ (トップ、プロフィール、詳細登録ページなど)
   // セッションがない場合はログインページにリダイレクト
-  // (matcherでsignupや静的ファイルは除外されています)
   if (!session) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
@@ -23,8 +23,9 @@ export function proxy(request) {
 }
 
 export const config = {
-  // api, _next/static, _next/image, favicon.ico, signup 以外のすべてのパスに適用
+  // api, _next/static, _next/image, favicon.ico 以外のすべてのパスに適用
+  // /signup は除外せず、proxy内部で判定します。ただし/signup/detailsは保護されます
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|signup).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

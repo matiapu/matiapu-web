@@ -325,3 +325,82 @@
   margin: 0;
   color: #9ca3af;
 }
+
+.otpContainer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.otpInput {
+  width: 56px;
+  height: 56px;
+  background-color: #f1f3fc;
+  border: 1px solid #e1e5f2;
+  border-radius: 14px;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  color: #001f60;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.otpInput:focus {
+  border-color: #0052cc;
+  background-color: #ffffff;
+}
+
+.gridRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.emailIconWrapper {
+  width: 64px;
+  height: 64px;
+  background-color: #eff6ff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+  color: #3b82f6;
+}
+
+.emailIcon {
+  font-size: 28px;
+}
+
+.emailBox {
+  background-color: #f3f4f6;
+  padding: 10px 16px;
+  border-radius: 10px;
+  display: inline-block;
+  font-size: 14px;
+  color: #374151;
+  margin-top: 16px;
+}
+
+.spinnerContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 24px 0;
+  color: #6b7280;
+}
+
+.spinner {
+  font-size: 18px;
+  color: #3b82f6;
+}
+
+.spinnerText {
+  font-size: 13px;
+  font-weight: 500;
+}

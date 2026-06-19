@@ -4,10 +4,19 @@ import styles from "./Header.module.css";
 import Link from 'next/link';
 import { useRouter } from "next/navigation";
 
+// Firebase Authのインポート
+import { signOut } from "firebase/auth";
+import { auth } from "@/src/firebase/firebase";
+
 export default function Header() {
   const router = useRouter();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
     // セッションCookieを削除
     document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
     router.push("/login");

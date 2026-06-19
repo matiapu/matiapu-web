@@ -1,7 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { GoogleAuthProvider, AppleAuthProvider, EmailAuthProvider, getAuth } from 'firebase/auth';
+import { GoogleAuthProvider, OAuthProvider, EmailAuthProvider, getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -21,11 +22,12 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const googleProvider = new GoogleAuthProvider();
 const auth = getAuth(app);
 // Apple認証
-const appleProvider = new AppleAuthProvider();
+const appleProvider = new OAuthProvider('apple.com');
 // メール認証
 const emailProvider = new EmailAuthProvider();
 
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // すべてのファイルからアクセスができるようにexportする。
-export { db, auth, googleProvider, appleProvider, emailProvider };
+export { db, auth, googleProvider, appleProvider, emailProvider, storage };
