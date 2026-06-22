@@ -5,10 +5,10 @@ import { faThumbsUp } from '@fortawesome/free-solid-svg-icons';
 import styles from './NiceBadButton.module.css'
 
 
-function NiceButton() {
+function NiceButton({ onClick }) {
   return (
     <div>
-        <button className={styles.Up}><FontAwesomeIcon icon={ faThumbsUp } /></button>
+        <button className={styles.Up} onClick={onClick}><FontAwesomeIcon icon={ faThumbsUp } /></button>
     </div>
   )
 }
