@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import Link from 'next/link';
 import styles from './CategoryMap.module.css';
@@ -31,6 +31,7 @@ const categoryStyles = {
 function CategoryMap() {
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
+  const cardRef = useRef(null);
   const [locations, setLocations] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -59,6 +60,33 @@ function CategoryMap() {
 
     loadLocations();
   }, []);
+
+  // ほかのとこクリックしたらボタン消える
+  useEffect(() => {
+    const handleDocumentClick = (event) => {
+      if (cardRef.current && cardRef.current.contains(event.target)) {
+        return;
+      }
+      
+      const path = event.composedPath ? event.composedPath() : [];
+      const isPinClick = (event.target.closest && event.target.closest('[data-pin="true"]')) ||
+        path.some(el => el.getAttribute && el.getAttribute('data-pin') === 'true');
+      
+      if (isPinClick) {
+        return;
+      }
+
+      setSelectedLocation(null);
+    };
+
+    if (selectedLocation) {
+      document.addEventListener('click', handleDocumentClick);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, [selectedLocation]);
 
   if (loading) {
     return <div className={styles.loading}>読み込み中...</div>;
@@ -134,6 +162,7 @@ function CategoryMap() {
             defaultCenter={{ lat: 35.681228, lng: 139.767052 }}
             defaultZoom={14}
             mapId="DEMO_MAP_ID"
+            onClick={() => setSelectedLocation(null)}
             options={{
               mapTypeControl: false,
               fullscreenControl: false,
@@ -152,9 +181,18 @@ function CategoryMap() {
                   key={index}
                   position={{ lat: data.lat, lng: data.lng }}
                   title={data.name}
-                  onClick={() => setSelectedLocation(data)}
+                  onClick={(e) => {
+                    if (e.stop) e.stop();
+                    if (e.domEvent && e.domEvent.stopPropagation) {
+                      e.domEvent.stopPropagation();
+                    }
+                    setSelectedLocation(data);
+                  }}
                 >
-                  <div className={`${styles.pinWrapper} ${isSelected ? styles.selectedPin : ''}`}>
+                  <div 
+                    className={`${styles.pinWrapper} ${isSelected ? styles.selectedPin : ''}`}
+                    data-pin="true"
+                  >
                     <Pin
                       background={style.background}
                       borderColor="#FFFFFF"
@@ -169,7 +207,7 @@ function CategoryMap() {
 
           {/* 右側に表示する詳細カード */}
           {selectedLocation && (
-            <div className={styles.detailCard}>
+            <div ref={cardRef} className={styles.detailCard}>
               <button 
                 className={styles.closeButton} 
                 onClick={() => setSelectedLocation(null)}
