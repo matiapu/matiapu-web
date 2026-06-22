@@ -1,0 +1,9 @@
+.Comment_NiceBadButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 20px auto;
+}
