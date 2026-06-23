@@ -52,6 +52,9 @@
   width: calc(100% - 128px);
   margin: 0 auto;
   position: relative;
+  border-top-left-radius: 100px;
+  border-top-right-radius: 100px;
+  overflow: hidden;
 }
 
 .loading {
