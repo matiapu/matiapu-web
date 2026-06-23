@@ -1,9 +1,11 @@
+import SideNav from "@/src/components/SideNav"
 
 
 function page() {
-  return (
+  return (<>
     <h1>top</h1>
-  )
+    <SideNav />
+  </>)
 }
 
 export default page
