@@ -10,7 +10,8 @@
   border-right: 1px solid #e5e5e5;
   box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08);
 
-  border-radius: 5px;
+  border-top-right-radius: 40px;
+  border-bottom-right-radius: 40px;
 
   display: flex;
   flex-direction: column;
