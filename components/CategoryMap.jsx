@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import Link from 'next/link';
 import styles from './CategoryMap.module.css';
+import Header from '@/components/Header';
+import SideNav from '@/src/components/SideNav';
 
 // ダミーデータを返す関数 (後でAPI呼び出しに置き換え可能)
 const getLocationsData = async () => {
@@ -37,6 +39,27 @@ function CategoryMap() {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isInteracted, setIsInteracted] = useState(false);
+
+  useEffect(() => {
+    if (isInteracted) return;
+
+    const handleInteraction = () => {
+      setIsInteracted(true);
+    };
+
+    window.addEventListener('scroll', handleInteraction, { passive: true });
+    window.addEventListener('pointerdown', handleInteraction, { passive: true });
+    window.addEventListener('wheel', handleInteraction, { passive: true });
+    window.addEventListener('keydown', handleInteraction, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleInteraction);
+      window.removeEventListener('pointerdown', handleInteraction);
+      window.removeEventListener('wheel', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+  }, [isInteracted]);
 
   const handleCategoryChange = (category) => {
     setSelectedCategory(category);
@@ -116,123 +139,131 @@ function CategoryMap() {
   );
 
   return (
-    <div className={styles.container}>
-      {/* カテゴリボタンセクション */}
-      <div className={styles.buttonSection}>
-        
-        {/* すべて表示ボタン */}
-        <button
-          onClick={() => handleCategoryChange(null)}
-          className={styles.allButton}
-          aria-label="すべてのカテゴリを表示"
-          aria-pressed={selectedCategory === null}
-        >
-          すべて
-        </button>
-
-        {/* カテゴリ別ボタン */}
-        {uniqueCategories.map(category => {
-          const style = categoryStyles[category] || categoryStyles.default;
-          const isSelected = selectedCategory === category;
+    <>
+      <div className={`${styles.headerWrapper} ${isInteracted ? styles.headerHidden : ""}`}>
+        <Header />
+      </div>
+      <div className={`${styles.sideNavWrapper} ${isInteracted ? styles.sideNavVisible : ""}`}>
+        <SideNav />
+      </div>
+      <div className={styles.container}>
+        {/* カテゴリボタンセクション */}
+        <div className={`${styles.buttonSection} ${isInteracted ? styles.buttonSectionFullscreen : ""}`}>
           
-          return (
-            <button
-              key={category}
-              onClick={() => handleCategoryChange(category)}
-              className={`${styles.categoryButton} ${isSelected ? '' : styles.categoryButtonInactive}`}
-              aria-label={`${style.label}を表示`}
-              aria-pressed={isSelected}
-              style={{
-                backgroundColor: isSelected ? style.background : '#ffffffc7',
-                color: isSelected ? '#fff' : '#000',
-                borderColor: style.background,
-                fontWeight: isSelected ? 'bold' : 'normal'
+          {/* すべて表示ボタン */}
+          <button
+            onClick={() => handleCategoryChange(null)}
+            className={styles.allButton}
+            aria-label="すべてのカテゴリを表示"
+            aria-pressed={selectedCategory === null}
+          >
+            すべて
+          </button>
+
+          {/* カテゴリ別ボタン */}
+          {uniqueCategories.map(category => {
+            const style = categoryStyles[category] || categoryStyles.default;
+            const isSelected = selectedCategory === category;
+            
+            return (
+              <button
+                key={category}
+                onClick={() => handleCategoryChange(category)}
+                className={`${styles.categoryButton} ${isSelected ? '' : styles.categoryButtonInactive}`}
+                aria-label={`${style.label}を表示`}
+                aria-pressed={isSelected}
+                style={{
+                  backgroundColor: isSelected ? style.background : '#ffffffc7',
+                  color: isSelected ? '#fff' : '#000',
+                  borderColor: style.background,
+                  fontWeight: isSelected ? 'bold' : 'normal'
+                }}
+              >
+                {style.label}
+              </button>
+            );
+          })}
+        </div>
+        
+        <APIProvider apiKey={API_KEY}>
+          <div className={`${styles.mapContainer} ${isInteracted ? styles.mapContainerFullscreen : ""}`}>
+            
+            <Map
+              defaultCenter={{ lat: 35.681228, lng: 139.767052 }}
+              defaultZoom={14}
+              mapId="DEMO_MAP_ID"
+              onClick={() => setSelectedLocation(null)}
+              options={{
+                mapTypeControl: false,
+                fullscreenControl: false,
+                streetViewControl: false,
+                zoomControl: true
               }}
             >
-              {style.label}
-            </button>
-          );
-        })}
-      </div>
-      
-      <APIProvider apiKey={API_KEY}>
-        <div className={styles.mapContainer}>
-          
-          <Map
-            defaultCenter={{ lat: 35.681228, lng: 139.767052 }}
-            defaultZoom={14}
-            mapId="DEMO_MAP_ID"
-            onClick={() => setSelectedLocation(null)}
-            options={{
-              mapTypeControl: false,
-              fullscreenControl: false,
-              streetViewControl: false,
-              zoomControl: true
-            }}
-          >
-            {/* フィルタリングされた配列をループしてピンを配置 */}
-            {filteredLocations.map((data, index) => {
-              // カテゴリに応じたスタイルを取得（なければdefault）
-              const style = categoryStyles[data.category] || categoryStyles.default;
-              const isSelected = selectedLocation && selectedLocation.lat === data.lat && selectedLocation.lng === data.lng;
+              {/* フィルタリングされた配列をループしてピンを配置 */}
+              {filteredLocations.map((data, index) => {
+                // カテゴリに応じたスタイルを取得（なければdefault）
+                const style = categoryStyles[data.category] || categoryStyles.default;
+                const isSelected = selectedLocation && selectedLocation.lat === data.lat && selectedLocation.lng === data.lng;
 
-              return (
-                <AdvancedMarker
-                  key={index}
-                  position={{ lat: data.lat, lng: data.lng }}
-                  title={data.name}
-                  onClick={(e) => {
-                    if (e.stop) e.stop();
-                    if (e.domEvent && e.domEvent.stopPropagation) {
-                      e.domEvent.stopPropagation();
-                    }
-                    setSelectedLocation(data);
-                  }}
-                >
-                  <div 
-                    className={`${styles.pinWrapper} ${isSelected ? styles.selectedPin : ''}`}
-                    data-pin="true"
+                return (
+                  <AdvancedMarker
+                    key={index}
+                    position={{ lat: data.lat, lng: data.lng }}
+                    title={data.name}
+                    onClick={(e) => {
+                      if (e.stop) e.stop();
+                      if (e.domEvent && e.domEvent.stopPropagation) {
+                        e.domEvent.stopPropagation();
+                      }
+                      setSelectedLocation(data);
+                    }}
                   >
-                    <Pin
-                      background={style.background}
-                      borderColor="#FFFFFF"
-                      glyph={style.glyph}
-                      scale={isSelected ? 1.3 : 1.0}
-                    />
-                  </div>
-                </AdvancedMarker>
-              );
-            })}
-          </Map>
+                    <div 
+                      className={`${styles.pinWrapper} ${isSelected ? styles.selectedPin : ''}`}
+                      data-pin="true"
+                    >
+                      <Pin
+                        background={style.background}
+                        borderColor="#FFFFFF"
+                        glyph={style.glyph}
+                        scale={isSelected ? 1.3 : 1.0}
+                      />
+                    </div>
+                  </AdvancedMarker>
+                );
+              })}
+            </Map>
 
-          {/* 右側に表示する詳細カード */}
-          {selectedLocation && (
-            <div ref={cardRef} className={styles.detailCard}>
-              <button 
-                className={styles.closeButton} 
-                onClick={() => setSelectedLocation(null)}
-                aria-label="閉じる"
-              >
-                ✕
-              </button>
-              <div className={styles.cardContent}>
-                <h3 className={styles.cardTitle}>{selectedLocation.name}</h3>
-                <span 
-                  className={styles.cardBadge} 
-                  style={{ backgroundColor: (categoryStyles[selectedLocation.category] || categoryStyles.default).background }}
+            {/* 右側に表示する詳細カード */}
+            {selectedLocation && (
+              <div ref={cardRef} className={styles.detailCard}>
+                <button 
+                  className={styles.closeButton} 
+                  onClick={() => setSelectedLocation(null)}
+                  aria-label="閉じる"
                 >
-                  {(categoryStyles[selectedLocation.category] || categoryStyles.default).label}
-                </span>
-                <Link href={`/posts/${selectedLocation.id}`} className={styles.cardLink}>
-                  詳細ページを見る
-                </Link>
+                  ✕
+                </button>
+                <div className={styles.cardContent}>
+                  <h3 className={styles.cardTitle}>{selectedLocation.name}</h3>
+                  <span 
+                    className={styles.cardBadge} 
+                    style={{ backgroundColor: (categoryStyles[selectedLocation.category] || categoryStyles.default).background }}
+                  >
+                    {(categoryStyles[selectedLocation.category] || categoryStyles.default).label}
+                  </span>
+                  <Link href={`/posts/${selectedLocation.id}`} className={styles.cardLink}>
+                    詳細ページを見る
+                  </Link>
+                </div>
               </div>
-            </div>
-          )}
-          
-        </div>
-      </APIProvider>
-    </div>
+            )}
+            
+          </div>
+        </APIProvider>
+      </div>
+    </>
   );
 }
 
