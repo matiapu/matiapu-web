@@ -21,13 +21,13 @@ export default function SideNav() {
         <span className={styles.label}>地図</span>
       </a>
 
-      <a href="/posts" className={styles.navItem}>
+      <a href="/posts/matchs" className={styles.navItem}>
         <img
           src="/icons/posts.png"
           alt="投稿"
           className={styles.iconImage}
         />
-        <span className={styles.label}></span>
+        <span className={styles.label}>投稿</span>
       </a>
 
       <a href="/member" className={styles.navItem}>
