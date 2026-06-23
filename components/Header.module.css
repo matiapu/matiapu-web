@@ -42,3 +42,23 @@
 .logoutButton:hover {
   color: #ef4444;
 }
+
+.logoArea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 48px;
+}
+
+.logoImage {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.logoText {
+  font-size: 18px;
+  font-weight: 700;
+  color: #003db3;
+  letter-spacing: -0.5px;
+}
