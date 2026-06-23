@@ -108,8 +108,55 @@ function parseP2PDateTime(dateTimeStr: string): Date {
   return new Date(formatted);
 }
 
-export async function GET() {
+// P2P地震情報の maxScale スコア値を気象庁震度階級の文字列に変換
+function formatMaxScale(maxScale: number): string {
+  switch (maxScale) {
+    case 10: return "1";
+    case 20: return "2";
+    case 30: return "3";
+    case 40: return "4";
+    case 45: return "5弱";
+    case 50: return "5強";
+    case 55: return "6弱";
+    case 60: return "6強";
+    case 70: return "7";
+    default: return "不明";
+  }
+}
+
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const mock = searchParams.get("mock");
+
+    if (mock === "osaka") {
+      const docRef = doc(db, "disasters", "mock_osaka_earthquake");
+      await setDoc(docRef, {
+        disaster_type: "地震",
+        occurred_at: Timestamp.now(),
+        created_at: Timestamp.now(),
+        danger_zone: {
+          type: "Polygon",
+          coordinates: [
+            { lat: 34.68639, lng: 135.52 } // 大阪市
+          ]
+        },
+        seismic_intensity: "6強",
+        seismic_intensity_code: 60,
+        prefecture_intensity: {
+          "大阪府": { scale: 60, intensity: "6強" },
+          "兵庫県": { scale: 50, intensity: "5強" },
+          "岡山県": { scale: 45, intensity: "5弱" },
+          "広島県": { scale: 40, intensity: "4" }
+        }
+      }, { merge: true });
+
+      return NextResponse.json({
+        success: true,
+        message: "Successfully registered Osaka-Hiroshima mock earthquake in Firestore."
+      });
+    }
+
     // P2P地震情報 API v2 /history エンドポイントから地震(551)と津波(552)の最新情報を10件取得
     const apiUrl = "https://api.p2pquake.net/v2/history?codes=551&codes=552&limit=10";
     const res = await fetch(apiUrl, { cache: "no-store" });
@@ -127,6 +174,9 @@ export async function GET() {
       let disaster_type: '地震' | '津波';
       let occurred_at: Timestamp;
       let danger_zone: any;
+      let seismic_intensity: string | undefined;
+      let seismic_intensity_code: number | undefined;
+      let prefecture_intensity: Record<string, { scale: number; intensity: string }> | undefined;
 
       if (code === 551) {
         // 地震情報
@@ -136,6 +186,30 @@ export async function GET() {
         const timeStr = event.earthquake?.time || event.time;
         if (!timeStr) continue;
         occurred_at = Timestamp.fromDate(parseP2PDateTime(timeStr));
+
+        // 震度3以上（maxScale >= 30）のみ登録
+        const maxScale = event.earthquake?.maxScale;
+        if (typeof maxScale !== "number" || maxScale < 30) {
+          continue;
+        }
+        seismic_intensity = formatMaxScale(maxScale);
+        seismic_intensity_code = maxScale;
+
+        // 都道府県ごとの最大震度を集計
+        const prefIntensityMap: Record<string, { scale: number; intensity: string }> = {};
+        const points = event.points || [];
+        for (const p of points) {
+          const pref = p.pref;
+          const scale = p.scale;
+          if (!pref || typeof scale !== "number") continue;
+          if (!prefIntensityMap[pref] || scale > prefIntensityMap[pref].scale) {
+            prefIntensityMap[pref] = {
+              scale: scale,
+              intensity: formatMaxScale(scale)
+            };
+          }
+        }
+        prefecture_intensity = prefIntensityMap;
 
         // 震央の座標取得
         const hypocenter = event.earthquake?.hypocenter;
@@ -154,17 +228,32 @@ export async function GET() {
       } else if (code === 552) {
         // 津波予報
         disaster_type = "津波";
+
+        // 危険性がある場合のみ登録（解除情報はスキップ）
+        if (event.cancelled === true) {
+          continue;
+        }
+
+        // 警告・注意報が出ている地域の一覧から、危険性がある（MajorWarning, Warning, Watch）地域のみ抽出
+        const areas = event.areas || [];
+        const dangerousAreas = areas.filter((area: any) =>
+          area.grade === "MajorWarning" ||
+          area.grade === "Warning" ||
+          area.grade === "Watch"
+        );
+
+        if (dangerousAreas.length === 0) {
+          continue;
+        }
         
         // 発表日時の取得
         const timeStr = event.issue?.time || event.time;
         if (!timeStr) continue;
         occurred_at = Timestamp.fromDate(parseP2PDateTime(timeStr));
 
-        // 警告・注意報が出ている地域の一覧から、座標データを抽出
-        const areas = event.areas || [];
+        // 危険性がある地域から座標データを抽出
         const points: { lat: number; lng: number }[] = [];
-        
-        for (const area of areas) {
+        for (const area of dangerousAreas) {
           const name = area.name || "";
           for (const [key, coords] of Object.entries(REGION_COORDS)) {
             if (name.includes(key)) {
@@ -183,12 +272,24 @@ export async function GET() {
       // Firestoreの disasters コレクションにレコードを保存
       // ドキュメントIDに P2PQuake のイベントIDを使用し、重複登録を防ぐ
       const docRef = doc(db, "disasters", eventId);
-      await setDoc(docRef, {
+      const disasterData: any = {
         disaster_type,
         danger_zone,
         occurred_at,
         created_at: Timestamp.now()
-      }, { merge: true });
+      };
+      
+      if (seismic_intensity !== undefined) {
+        disasterData.seismic_intensity = seismic_intensity;
+      }
+      if (seismic_intensity_code !== undefined) {
+        disasterData.seismic_intensity_code = seismic_intensity_code;
+      }
+      if (prefecture_intensity !== undefined) {
+        disasterData.prefecture_intensity = prefecture_intensity;
+      }
+
+      await setDoc(docRef, disasterData, { merge: true });
 
       registeredCount++;
     }
