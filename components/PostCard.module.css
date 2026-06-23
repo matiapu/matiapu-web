@@ -1,0 +1,95 @@
+:root {
+  --color-text: #fff;
+  --color-button-text: #000;
+  --color-button: #f7e02a;
+}
+
+.post_wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  color: var(--color-text);
+  justify-content: flex-end;
+}
+
+.post_image {
+  position: absolute;
+  inset: 0;
+  border-radius: 40px;
+  object-fit: cover;
+  filter: brightness(0.5);
+}
+
+/* 画像の上に重ねる */
+.overlay {
+  position: relative;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 90px;
+}
+
+/* アイコン＋名前 */
+.user_info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.space{
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.user_name{
+    padding-left: 20px;
+}
+
+.user_info p {
+  margin: 0;
+}
+
+/* タイトル */
+.overlay h2 {
+  margin: 0 0 20px;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+/* タグ */
+.tag {
+  display: inline-block;
+  width: fit-content;
+  background: var(--color-button);
+  color: var(--color-button-text);
+  padding: 8px 24px;
+  border-radius: 999px;
+  font-weight: bold;
+  margin-bottom: 40px;
+}
+
+/* 本文 */
+.content {
+    margin-top: auto;
+    position: relative;
+}
+
+.content p {
+  line-height: 1.8;
+  margin: 0;
+  max-width: 85%;
+}
+
+/* 続きを見る */
+.content button {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+}

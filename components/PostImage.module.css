@@ -1,0 +1,27 @@
+.container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+}
+
+/* ★画像グリッド全体の指定 */
+.imageGrid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    max-width: 1600px; 
+}
+
+/* 画像1枚ずつの外枠 */
+.imageContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.actualImage {
+    object-fit: contain; 
+}

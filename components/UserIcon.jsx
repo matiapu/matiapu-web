@@ -1,11 +1,14 @@
 import styles from "./UserIcon.module.css";
+import Image from "next/image";
 
-export default function UserIcon({ iconUrl, userName = "ユーザー" }) {
+export default function UserIcon({ iconUrl, userName = "ユーザー", className }) {
   return (
-    <div className={styles.userIcon}>
-      <img
-        src={iconUrl || "/default-user-icon.png"}
+    <div className={`${styles.userIcon} ${className || ""}`}>
+      <Image
+        src={iconUrl || '/user_icon/user_icon1.jpg'}
         alt={`${userName}のアイコン`}
+        fill
+        sizes="300px"
         className={styles.iconImage}
       />
     </div>
