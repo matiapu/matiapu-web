@@ -25,8 +25,8 @@ function PostCard({ post, onPreviousPost, onNextPost, disablePrevious, disableNe
         setIsOpen(!isOpen)
     }
     return (
-        <div>
-            <div className={styles.post_wrapper}>
+         <div className={isOpen ? styles.expanded_layout : ''}>
+            <div className={`${styles.post_wrapper} ${isOpen ? styles.is_open : ''}`}>
                 {/* 投稿画像 */}
                 <Image
                     src={post.image}
