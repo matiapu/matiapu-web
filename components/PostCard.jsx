@@ -3,7 +3,6 @@ import React from 'react'
 import { useState } from 'react'
 import UserIcon from './UserIcon'
 import styles from './PostCard.module.css'
-import NiceBadButton from './NiceBadButton'
 import Image from 'next/image'
 
 
@@ -35,6 +34,7 @@ function PostCard({ post, onPreviousPost, onNextPost, disablePrevious, disableNe
                     fill
                     sizes="100vw"
                     className={styles.post_image}
+                    unoptimized
                 />
 
                 {/* ユーザー情報 */}
@@ -69,14 +69,6 @@ function PostCard({ post, onPreviousPost, onNextPost, disablePrevious, disableNe
                         )}
                     </div>
                 </div>
-            </div>
-            <div className={styles.NiceBadButton}>
-                <NiceBadButton
-                  onPrevious={onPreviousPost}
-                  onNext={onNextPost}
-                  disablePrevious={disablePrevious}
-                  disableNext={disableNext}
-                />
             </div>
         </div>
     )
