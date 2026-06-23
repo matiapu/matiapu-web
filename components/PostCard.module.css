@@ -7,6 +7,14 @@
   justify-content: flex-end;
 }
 
+.clickable {
+  cursor: pointer;
+}
+.clickable:hover {
+  /* ホバーした時に少しだけカード全体を明るく（または暗く）して、クリックできる感を出す演出 */
+  filter: brightness(1.05); 
+}
+
 .post_image {
   position: absolute;
   inset: 0;
@@ -30,6 +38,7 @@
   align-items: center;
   margin-bottom: 24px;
   width: 100%;
+  cursor: default
 }
 
 .space{
