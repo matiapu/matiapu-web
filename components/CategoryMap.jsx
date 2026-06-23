@@ -44,7 +44,20 @@ function CategoryMap() {
   useEffect(() => {
     if (isInteracted) return;
 
-    const handleInteraction = () => {
+    const handleInteraction = (event) => {
+      // 1. クリック/タッチ/ホイールの座標がヘッダー領域（高さ64px）の場合は無視する
+      if (event && typeof event.clientY === 'number') {
+        if (event.clientY < 64) {
+          return;
+        }
+      }
+
+      // 2. イベントターゲットがヘッダーWrapper内の場合は無視する
+      if (event && event.target && event.target.closest) {
+        if (event.target.closest(`.${styles.headerWrapper}`)) {
+          return;
+        }
+      }
       setIsInteracted(true);
     };
 
