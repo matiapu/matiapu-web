@@ -3,17 +3,22 @@
     background: rgb(217, 217, 217);
     padding: 20px;
     border-radius: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.Input_wrapper {
+.Input_button {
     background: rgb(176, 176, 176);
-    width: 600px;
+    width: 650px;
     margin: 0 auto;
     height: 55px;
-    padding: 10px;
+    padding: 0 20px;
     border-radius: 50px;
+    border: none;
 }
 
-.Button {
-    padding-left: 30px;
+.Input_button::placeholder {
+    color: #000;
+    opacity: 1;
 }
