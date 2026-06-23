@@ -38,6 +38,12 @@
   box-shadow: 0 4px 12px rgba(194, 216, 255, 0.6);
 }
 
+.logoImage {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
 .logoText {
   font-size: 13px;
   font-weight: 700;
