@@ -83,6 +83,9 @@
   height: 0;
   transform: translateY(-100%);
   opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.6, -0.28, 0.735, 0.045),
+              opacity 0.3s ease,
+              height 0.4s cubic-bezier(0.6, -0.28, 0.735, 0.045);
 }
 
 .sideNavWrapper {
