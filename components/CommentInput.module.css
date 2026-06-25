@@ -1,0 +1,24 @@
+.search_wrapper {
+    width: 700px;
+    background: rgb(217, 217, 217);
+    padding: 20px;
+    border-radius: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.Input_button {
+    background: rgb(176, 176, 176);
+    width: 650px;
+    margin: 0 auto;
+    height: 55px;
+    padding: 0 20px;
+    border-radius: 50px;
+    border: none;
+}
+
+.Input_button::placeholder {
+    color: #000;
+    opacity: 1;
+}
