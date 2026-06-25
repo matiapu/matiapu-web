@@ -12,6 +12,7 @@ export default function SideNav() {
           width={32}
           height={32}
           className={styles.iconImage}
+          unoptimized
         />
         <span className={styles.label}>ホーム</span>
       </Link>
@@ -23,6 +24,7 @@ export default function SideNav() {
           width={32}
           height={32}
           className={styles.iconImage}
+          unoptimized
         />
         <span className={styles.label}>地図</span>
       </Link>
@@ -34,6 +36,7 @@ export default function SideNav() {
           width={32}
           height={32}
           className={styles.iconImage}
+          unoptimized
         />
         <span className={styles.label}>投稿</span>
       </Link>
@@ -45,6 +48,7 @@ export default function SideNav() {
           width={32}
           height={32}
           className={styles.iconImage}
+          unoptimized
         />
         <span className={styles.label}>議員</span>
       </Link>
@@ -56,6 +60,7 @@ export default function SideNav() {
           width={32}
           height={32}
           className={styles.iconImage}
+          unoptimized
         />
         <span className={styles.label}>設定</span>
       </Link>
