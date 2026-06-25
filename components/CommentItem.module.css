@@ -1,23 +1,55 @@
 .User_info {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .UserIcon {
-    box-shadow: 3px;
+  width: 44px !important;
+  height: 44px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .name {
-    margin-left: 10px;
-    font-size: 16px;
+  margin: 0 0 0 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .contents {
-    color: #fff;
-    font-size: 1rem;
+  padding-left: 56px; /* indent to align text with name (avatar width 44px + 12px gap) */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.content {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #334155;
+  word-break: break-all;
 }
 
 .createAt {
-    text-align: right;
-    font-size: 0.8rem;
+  margin: 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .UserIcon {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  .name {
+    font-size: 0.9rem;
+    margin-left: 10px;
+  }
+  .contents {
+    padding-left: 0;
+    margin-top: 8px;
+  }
 }
