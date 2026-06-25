@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
 import styles from './CategoryMap.module.css';
+import Header from '@/components/Header';
+import SideNav from '@/src/components/SideNav';
 import { getDisasters } from '@/src/firebase/disasterDb';
 import Link from 'next/link';
 
@@ -171,6 +173,40 @@ function CategoryMap() {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isInteracted, setIsInteracted] = useState(false);
+
+  useEffect(() => {
+    if (isInteracted) return;
+
+    const handleInteraction = (event) => {
+      // 1. クリック/タッチ/ホイールの座標がヘッダー領域（高さ64px）の場合は無視する
+      if (event && typeof event.clientY === 'number') {
+        if (event.clientY < 64) {
+          return;
+        }
+      }
+
+      // 2. イベントターゲットがヘッダーWrapper内の場合は無視する
+      if (event && event.target && event.target.closest) {
+        if (event.target.closest(`.${styles.headerWrapper}`)) {
+          return;
+        }
+      }
+      setIsInteracted(true);
+    };
+
+    window.addEventListener('scroll', handleInteraction, { passive: true });
+    window.addEventListener('pointerdown', handleInteraction, { passive: true });
+    window.addEventListener('wheel', handleInteraction, { passive: true });
+    window.addEventListener('keydown', handleInteraction, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleInteraction);
+      window.removeEventListener('pointerdown', handleInteraction);
+      window.removeEventListener('wheel', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+  }, [isInteracted]);
 
   // マップの表示中心とズーム状態を管理
   const [mapCenter, setMapCenter] = useState({ lat: 35.681228, lng: 139.767052 });
@@ -350,207 +386,131 @@ function CategoryMap() {
   );
 
   return (
-    <div className={styles.container}>
-      {/* カテゴリボタンセクション */}
-      <div className={styles.buttonSection}>
-        
-        {/* すべて表示ボタン */}
-        <button
-          onClick={() => handleCategoryChange(null)}
-          className={styles.allButton}
-          aria-label="すべてのカテゴリを表示"
-          aria-pressed={selectedCategory === null}
-        >
-          すべて
-        </button>
-
-        {/* カテゴリ別ボタン */}
-        {uniqueCategories.map(category => {
-          const style = categoryStyles[category] || categoryStyles.default;
-          const isSelected = selectedCategory === category;
+    <>
+      <div className={`${styles.headerWrapper} ${isInteracted ? styles.headerHidden : ""}`}>
+        <Header />
+      </div>
+      <div className={`${styles.sideNavWrapper} ${isInteracted ? styles.sideNavVisible : ""}`}>
+        <SideNav />
+      </div>
+      <div className={styles.container}>
+        {/* カテゴリボタンセクション */}
+        <div className={`${styles.buttonSection} ${isInteracted ? styles.buttonSectionFullscreen : ""}`}>
           
-          return (
-            <button
-              key={category}
-              onClick={() => handleCategoryChange(category)}
-              className={`${styles.categoryButton} ${isSelected ? '' : styles.categoryButtonInactive}`}
-              aria-label={`${style.label}を表示`}
-              aria-pressed={isSelected}
-              style={{
-                backgroundColor: isSelected ? style.background : '#ffffffc7',
-                color: isSelected ? '#fff' : '#000',
-                borderColor: style.background,
-                fontWeight: isSelected ? 'bold' : 'normal'
+          {/* すべて表示ボタン */}
+          <button
+            onClick={() => handleCategoryChange(null)}
+            className={styles.allButton}
+            aria-label="すべてのカテゴリを表示"
+            aria-pressed={selectedCategory === null}
+          >
+            すべて
+          </button>
+
+          {/* カテゴリ別ボタン */}
+          {uniqueCategories.map(category => {
+            const style = categoryStyles[category] || categoryStyles.default;
+            const isSelected = selectedCategory === category;
+            
+            return (
+              <button
+                key={category}
+                onClick={() => handleCategoryChange(category)}
+                className={`${styles.categoryButton} ${isSelected ? '' : styles.categoryButtonInactive}`}
+                aria-label={`${style.label}を表示`}
+                aria-pressed={isSelected}
+                style={{
+                  backgroundColor: isSelected ? style.background : '#ffffffc7',
+                  color: isSelected ? '#fff' : '#000',
+                  borderColor: style.background,
+                  fontWeight: isSelected ? 'bold' : 'normal'
+                }}
+              >
+                {style.label}
+              </button>
+            );
+          })}
+        </div>
+        
+        <APIProvider apiKey={API_KEY}>
+          <div className={`${styles.mapContainer} ${isInteracted ? styles.mapContainerFullscreen : ""}`}>
+            
+            <Map
+              defaultCenter={{ lat: 35.681228, lng: 139.767052 }}
+              defaultZoom={14}
+              mapId="DEMO_MAP_ID"
+              onClick={() => setSelectedLocation(null)}
+              options={{
+                mapTypeControl: false,
+                fullscreenControl: false,
+                streetViewControl: false,
+                zoomControl: true
               }}
             >
-              {style.label}
-            </button>
-          );
-        })}
-      </div>
+              {/* フィルタリングされた配列をループしてピンを配置 */}
+              {filteredLocations.map((data, index) => {
+                // カテゴリに応じたスタイルを取得（なければdefault）
+                const style = categoryStyles[data.category] || categoryStyles.default;
+                const isSelected = selectedLocation && selectedLocation.lat === data.lat && selectedLocation.lng === data.lng;
 
-
-      
-      <APIProvider apiKey={API_KEY}>
-        <div className={styles.mapContainer}>
-          
-          <Map
-            center={mapCenter}
-            zoom={mapZoom}
-            onCenterChanged={(e) => setMapCenter(e.detail.center)}
-            onZoomChanged={(e) => setMapZoom(e.detail.zoom)}
-            mapId="DEMO_MAP_ID"
-            onClick={() => setSelectedLocation(null)}
-            options={{
-              mapTypeControl: false,
-              fullscreenControl: false,
-              streetViewControl: false,
-              zoomControl: true
-            }}
-          >
-            {/* 日本の都道府県境界GeoJSONレイヤーを重ねて、対象の県のみを震度カラーで塗りつぶす */}
-            <PrefectureLayers locations={locations} selectedCategory={selectedCategory} />
-
-            {/* フィルタリングされた配列をループしてピンやテキストラベルを配置 */}
-            {filteredLocations.map((data, index) => {
-              // 災害カテゴリで、かつ都道府県ごとの震度情報の場合
-              if (data.category === "disaster" && data.isPrefectureIntensity) {
-                const intensityStyle = INTENSITY_COLORS[data.intensity] || { bg: "#808080", text: "#ffffff" };
-                
                 return (
                   <AdvancedMarker
-                    key={`pref-label-${index}`}
+                    key={index}
                     position={{ lat: data.lat, lng: data.lng }}
                     title={data.name}
+                    onClick={(e) => {
+                      if (e.stop) e.stop();
+                      if (e.domEvent && e.domEvent.stopPropagation) {
+                        e.domEvent.stopPropagation();
+                      }
+                      setSelectedLocation(data);
+                    }}
                   >
-                    <div style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                      color: '#1a1a1a',
-                      fontSize: '10px',
-                      padding: '3px 6px',
-                      borderRadius: '4px',
-                      boxShadow: '0 1.5px 4px rgba(0,0,0,0.15)',
-                      border: `2px solid ${intensityStyle.bg}`,
-                      fontWeight: 'bold',
-                      whiteSpace: 'nowrap',
-                      cursor: 'pointer',
-                      transform: 'translateY(-50%)'
-                    }}>
-                      {data.prefName} ({data.intensity})
+                    <div 
+                      className={`${styles.pinWrapper} ${isSelected ? styles.selectedPin : ''}`}
+                      data-pin="true"
+                    >
+                      <Pin
+                        background={style.background}
+                        borderColor="#FFFFFF"
+                        glyph={style.glyph}
+                        scale={isSelected ? 1.3 : 1.0}
+                      />
                     </div>
                   </AdvancedMarker>
                 );
-              }
+              })}
+            </Map>
 
-              // 震源地マーカーの場合
-              if (data.category === "disaster" && data.isEpicenter) {
-                return (
-                  <AdvancedMarker
-                    key={`epi-${index}`}
-                    position={{ lat: data.lat, lng: data.lng }}
-                    title={data.name}
-                  >
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      cursor: 'pointer'
-                    }}>
-                      <div style={{
-                        backgroundColor: '#FF0000',
-                        color: '#ffffff',
-                        border: '2px solid #ffffff',
-                        borderRadius: '50%',
-                        width: '36px',
-                        height: '36px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                        boxShadow: '0 2px 6px rgba(255,0,0,0.4)',
-                        fontSize: '14px'
-                      }}>
-                        ❌
-                      </div>
-                      <span style={{
-                        backgroundColor: 'rgba(255, 0, 0, 0.9)',
-                        color: '#ffffff',
-                        fontSize: '10px',
-                        padding: '2px 5px',
-                        borderRadius: '3px',
-                        marginTop: '2px',
-                        fontWeight: 'bold',
-                        whiteSpace: 'nowrap',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                      }}>
-                        震源地
-                      </span>
-                    </div>
-                  </AdvancedMarker>
-                );
-              }
-
-              // その他のカテゴリの標準マーカー
-              const style = categoryStyles[data.category] || categoryStyles.default;
-              const isSelected = selectedLocation && selectedLocation.lat === data.lat && selectedLocation.lng === data.lng;
-
-              return (
-                <AdvancedMarker
-                  key={index}
-                  position={{ lat: data.lat, lng: data.lng }}
-                  title={data.name}
-                  onClick={(e) => {
-                    if (e.stop) e.stop();
-                    if (e.domEvent && e.domEvent.stopPropagation) {
-                      e.domEvent.stopPropagation();
-                    }
-                    setSelectedLocation(data);
-                  }}
+            {/* 右側に表示する詳細カード */}
+            {selectedLocation && (
+              <div ref={cardRef} className={styles.detailCard}>
+                <button 
+                  className={styles.closeButton} 
+                  onClick={() => setSelectedLocation(null)}
+                  aria-label="閉じる"
                 >
-                  <div 
-                    className={`${styles.pinWrapper} ${isSelected ? styles.selectedPin : ''}`}
-                    data-pin="true"
+                  ✕
+                </button>
+                <div className={styles.cardContent}>
+                  <h3 className={styles.cardTitle}>{selectedLocation.name}</h3>
+                  <span 
+                    className={styles.cardBadge} 
+                    style={{ backgroundColor: (categoryStyles[selectedLocation.category] || categoryStyles.default).background }}
                   >
-                    <Pin
-                      background={style.background}
-                      borderColor="#FFFFFF"
-                      glyph={style.glyph}
-                      scale={isSelected ? 1.3 : 1.0}
-                    />
-                  </div>
-                </AdvancedMarker>
-              );
-            })}
-          </Map>
-
-          {/* 右側に表示する詳細カード */}
-          {selectedLocation && (
-            <div ref={cardRef} className={styles.detailCard}>
-              <button 
-                className={styles.closeButton} 
-                onClick={() => setSelectedLocation(null)}
-                aria-label="閉じる"
-              >
-                ✕
-              </button>
-              <div className={styles.cardContent}>
-                <h3 className={styles.cardTitle}>{selectedLocation.name}</h3>
-                <span 
-                  className={styles.cardBadge} 
-                  style={{ backgroundColor: (categoryStyles[selectedLocation.category] || categoryStyles.default).background }}
-                >
-                  {(categoryStyles[selectedLocation.category] || categoryStyles.default).label}
-                </span>
-                <Link href={`/posts/${selectedLocation.id}`} className={styles.cardLink}>
-                  詳細ページを見る
-                </Link>
+                    {(categoryStyles[selectedLocation.category] || categoryStyles.default).label}
+                  </span>
+                  <Link href={`/posts/${selectedLocation.id}`} className={styles.cardLink}>
+                    詳細ページを見る
+                  </Link>
+                </div>
               </div>
-            </div>
-          )}
-          
-        </div>
-      </APIProvider>
-    </div>
+            )}
+            
+          </div>
+        </APIProvider>
+      </div>
+    </>
   );
 }
 
