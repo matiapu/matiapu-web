@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
 import styles from './CategoryMap.module.css';
 import { getDisasters } from '@/src/firebase/disasterDb';
+import Link from 'next/link';
 
 // ユーザー指定の震度カラー
 const INTENSITY_COLORS = {
