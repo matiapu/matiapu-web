@@ -2,6 +2,7 @@
 
 import styles from "./Header.module.css";
 import Link from 'next/link';
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 // Firebase Authのインポート
@@ -27,7 +28,7 @@ export default function Header() {
     <div>
       <header className={styles.header}>
         <div className={styles.logoArea}>
-          <img src="/logo.png" alt="マチアプ" className={styles.logoImage} />
+          <Image src="/logo.png" alt="マチアプ" className={styles.logoImage} width={32} height={32} />
           <span className={styles.logoText}>マチアプ</span>
         </div>
           <nav className={styles.nav}>
