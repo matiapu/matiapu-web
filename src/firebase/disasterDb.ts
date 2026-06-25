@@ -38,6 +38,12 @@ export interface Disaster {
   id?: string;
   /** 災害種別 (洪水, 土砂, 津波, 地震) */
   disaster_type: DisasterType;
+  /** 地震の震度 (例: "3", "5弱", "5強" など。地震の場合のみ設定) */
+  seismic_intensity?: string;
+  /** 地震の最大震度コード (例: 30, 45, 50 など。地震の場合のみ設定) */
+  seismic_intensity_code?: number;
+  /** 都道府県ごとの震度情報 (例: { "青森県": { scale: 50, intensity: "5強" } }) ※地震のみ */
+  prefecture_intensity?: Record<string, { scale: number; intensity: string }>;
   /** 危険区域のポリゴンデータ (GeoJSON形式等) */
   danger_zone: DangerZone;
   /** 災害発生日時 */
