@@ -195,14 +195,6 @@ export async function GET(request: Request) {
         if (!timeStr) continue;
         occurred_at = Timestamp.fromDate(parseP2PDateTime(timeStr));
 
-        // 震度3以上（maxScale >= 30）のみ登録
-        const maxScale = event.earthquake?.maxScale;
-        if (typeof maxScale !== "number" || maxScale < 30) {
-          continue;
-        }
-        seismic_intensity = formatMaxScale(maxScale);
-        seismic_intensity_code = maxScale;
-
         // 都道府県ごとの最大震度を集計
         const prefIntensityMap: Record<string, { scale: number; intensity: string }> = {};
         const points = event.points || [];
