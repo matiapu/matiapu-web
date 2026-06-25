@@ -36,7 +36,7 @@ export interface DangerZone {
 export interface Disaster {
   /** 災害情報のドキュメントID (Firestoreから取得した際に付与されます) */
   id?: string;
-  /** 災害種別 (洪水, 土砂, 津波) */
+  /** 災害種別 (洪水, 土砂, 津波, 地震) */
   disaster_type: DisasterType;
   /** 地震の震度 (例: "3", "5弱", "5強" など。地震の場合のみ設定) */
   seismic_intensity?: string;
@@ -50,6 +50,10 @@ export interface Disaster {
   occurred_at: Timestamp;
   /** レコード作成日時 */
   created_at: Timestamp;
+  /** 地震の震度 (例: "3", "5弱", "5強" など。地震の場合のみ設定) */
+  seismic_intensity?: string;
+  /** 地震の最大震度コード (例: 30, 45, 50 など。地震の場合のみ設定) */
+  seismic_intensity_code?: number;
 }
 
 /**

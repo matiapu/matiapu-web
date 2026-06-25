@@ -181,6 +181,14 @@ export async function GET(request: Request) {
       if (code === 551) {
         // 地震情報
         disaster_type = "地震";
+
+        // 震度3以上（maxScale >= 30）のみ登録
+        const maxScale = event.earthquake?.maxScale;
+        if (typeof maxScale !== "number" || maxScale < 30) {
+          continue;
+        }
+        seismic_intensity = formatMaxScale(maxScale);
+        seismic_intensity_code = maxScale;
         
         // 発生日時の取得
         const timeStr = event.earthquake?.time || event.time;

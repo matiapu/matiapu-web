@@ -94,11 +94,11 @@ function PrefectureLayers({ locations, selectedCategory }) {
 // ダミーデータ（道路・お店・通報など）を返す関数
 const getLocationsData = async () => {
   return [
-    { name: "おしゃれカフェA", lat: 35.681228, lng: 139.767052, category: "disaster" },
-    { name: "ラーメン店B", lat: 35.683500, lng: 139.765000, category: "road" },
-    { name: "緑の公園C", lat: 35.678000, lng: 139.769000, category: "shop" },
-    { name: "静かなカフェD", lat: 35.685000, lng: 139.771000, category: "disaster" },
-    { name: "通報エリアA", lat: 35.682000, lng: 139.768000, category: "report" }
+    { id: 1, name: "おしゃれカフェA", lat: 35.681228, lng: 139.767052, category: "disaster" },
+    { id: 2, name: "ラーメン店B", lat: 35.683500, lng: 139.765000, category: "road" },
+    { id: 3, name: "緑の公園C", lat: 35.678000, lng: 139.769000, category: "shop" },
+    { id: 1, name: "静かなカフェD", lat: 35.685000, lng: 139.771000, category: "disaster" },
+    { id: 2, name: "通報エリアA", lat: 35.682000, lng: 139.768000, category: "report" }
   ];
 };
 
@@ -164,8 +164,10 @@ const PREFECTURE_COORDS = {
 function CategoryMap() {
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
+  const cardRef = useRef(null);
   const [locations, setLocations] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -288,6 +290,33 @@ function CategoryMap() {
     loadLocations();
   }, []);
 
+  // ほかのとこクリックしたらボタン消える
+  useEffect(() => {
+    const handleDocumentClick = (event) => {
+      if (cardRef.current && cardRef.current.contains(event.target)) {
+        return;
+      }
+      
+      const path = event.composedPath ? event.composedPath() : [];
+      const isPinClick = (event.target.closest && event.target.closest('[data-pin="true"]')) ||
+        path.some(el => el.getAttribute && el.getAttribute('data-pin') === 'true');
+      
+      if (isPinClick) {
+        return;
+      }
+
+      setSelectedLocation(null);
+    };
+
+    if (selectedLocation) {
+      document.addEventListener('click', handleDocumentClick);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, [selectedLocation]);
+
   if (loading) {
     return <div className={styles.loading}>読み込み中...</div>;
   }
@@ -321,7 +350,7 @@ function CategoryMap() {
         
         {/* すべて表示ボタン */}
         <button
-          onClick={() => setSelectedCategory(null)}
+          onClick={() => handleCategoryChange(null)}
           className={styles.allButton}
           aria-label="すべてのカテゴリを表示"
           aria-pressed={selectedCategory === null}
@@ -337,7 +366,7 @@ function CategoryMap() {
           return (
             <button
               key={category}
-              onClick={() => setSelectedCategory(category)}
+              onClick={() => handleCategoryChange(category)}
               className={`${styles.categoryButton} ${isSelected ? '' : styles.categoryButtonInactive}`}
               aria-label={`${style.label}を表示`}
               aria-pressed={isSelected}
@@ -365,6 +394,7 @@ function CategoryMap() {
             onCenterChanged={(e) => setMapCenter(e.detail.center)}
             onZoomChanged={(e) => setMapZoom(e.detail.zoom)}
             mapId="DEMO_MAP_ID"
+            onClick={() => setSelectedLocation(null)}
             options={{
               mapTypeControl: false,
               fullscreenControl: false,
@@ -456,22 +486,61 @@ function CategoryMap() {
 
               // その他のカテゴリの標準マーカー
               const style = categoryStyles[data.category] || categoryStyles.default;
+              const isSelected = selectedLocation && selectedLocation.lat === data.lat && selectedLocation.lng === data.lng;
 
               return (
                 <AdvancedMarker
                   key={index}
                   position={{ lat: data.lat, lng: data.lng }}
                   title={data.name}
+                  onClick={(e) => {
+                    if (e.stop) e.stop();
+                    if (e.domEvent && e.domEvent.stopPropagation) {
+                      e.domEvent.stopPropagation();
+                    }
+                    setSelectedLocation(data);
+                  }}
                 >
-                  <Pin
-                    background={style.background}
-                    borderColor="#FFFFFF"
-                    glyph={style.glyph}
-                  />
+                  <div 
+                    className={`${styles.pinWrapper} ${isSelected ? styles.selectedPin : ''}`}
+                    data-pin="true"
+                  >
+                    <Pin
+                      background={style.background}
+                      borderColor="#FFFFFF"
+                      glyph={style.glyph}
+                      scale={isSelected ? 1.3 : 1.0}
+                    />
+                  </div>
                 </AdvancedMarker>
               );
             })}
           </Map>
+
+          {/* 右側に表示する詳細カード */}
+          {selectedLocation && (
+            <div ref={cardRef} className={styles.detailCard}>
+              <button 
+                className={styles.closeButton} 
+                onClick={() => setSelectedLocation(null)}
+                aria-label="閉じる"
+              >
+                ✕
+              </button>
+              <div className={styles.cardContent}>
+                <h3 className={styles.cardTitle}>{selectedLocation.name}</h3>
+                <span 
+                  className={styles.cardBadge} 
+                  style={{ backgroundColor: (categoryStyles[selectedLocation.category] || categoryStyles.default).background }}
+                >
+                  {(categoryStyles[selectedLocation.category] || categoryStyles.default).label}
+                </span>
+                <Link href={`/posts/${selectedLocation.id}`} className={styles.cardLink}>
+                  詳細ページを見る
+                </Link>
+              </div>
+            </div>
+          )}
           
         </div>
       </APIProvider>

@@ -26,8 +26,9 @@ export default function Header() {
   return (
     <div>
       <header className={styles.header}>
-        <div className={styles.logo}>
-          <p>街アプ</p>
+        <div className={styles.logoArea}>
+          <img src="/logo.png" alt="マチアプ" className={styles.logoImage} />
+          <span className={styles.logoText}>マチアプ</span>
         </div>
           <nav className={styles.nav}>
             <Link href="/" className={styles.navLink}>

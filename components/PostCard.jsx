@@ -3,11 +3,10 @@ import React from 'react'
 import { useState } from 'react'
 import UserIcon from './UserIcon'
 import styles from './PostCard.module.css'
-import NiceBadButton from './NiceBadButton'
 import Image from 'next/image'
 
 
-function PostCard({ post, onPreviousPost, onNextPost, disablePrevious, disableNext }) {
+function PostCard({ post }) {
     // 投稿が開いているかどうかを管理するステート（初期値は false = 閉じている
     const [isOpen, setIsOpen] = useState(false)
 
@@ -25,9 +24,13 @@ function PostCard({ post, onPreviousPost, onNextPost, disablePrevious, disableNe
     const toggleOpen = () => {
         setIsOpen(!isOpen)
     }
+
+    const handleChildClick = (e) => {
+        e.stopPropagation()
+    }
     return (
-        <div>
-            <div className={styles.post_wrapper}>
+         <div className={isOpen ? styles.expanded_layout : ''}>
+            <div className={`${styles.post_wrapper} ${isOpen ? styles.is_open : ''} ${styles.clickable}`} onClick={toggleOpen}>
                 {/* 投稿画像 */}
                 <Image
                     src={post.image}
@@ -35,11 +38,12 @@ function PostCard({ post, onPreviousPost, onNextPost, disablePrevious, disableNe
                     fill
                     sizes="100vw"
                     className={styles.post_image}
+                    unoptimized
                 />
 
                 {/* ユーザー情報 */}
                 <div className={styles.overlay}>
-                    <div className={styles.user_info}>
+                    <div className={styles.user_info} onClick={handleChildClick}>
                         <UserIcon iconUrl={post.userIcon} />
 
                         <div className={styles.space}>
@@ -69,14 +73,6 @@ function PostCard({ post, onPreviousPost, onNextPost, disablePrevious, disableNe
                         )}
                     </div>
                 </div>
-            </div>
-            <div className={styles.NiceBadButton}>
-                <NiceBadButton
-                  onPrevious={onPreviousPost}
-                  onNext={onNextPost}
-                  disablePrevious={disablePrevious}
-                  disableNext={disableNext}
-                />
             </div>
         </div>
     )
