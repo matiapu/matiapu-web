@@ -117,6 +117,18 @@ export default function SignupDetailsPage() {
               cropPos = profileImageMap.cropPosition || null;
             }
 
+            let bYear = "1995";
+            let bMonth = "5";
+            let bDay = "15";
+            if (data.birthDate) {
+              const parts = data.birthDate.split("-");
+              if (parts.length === 3) {
+                bYear = parts[0];
+                bMonth = parseInt(parts[1], 10).toString();
+                bDay = parseInt(parts[2], 10).toString();
+              }
+            }
+
             setFormData((prev) => ({
               ...prev,
               lastName: data.lastName || "",
@@ -125,6 +137,9 @@ export default function SignupDetailsPage() {
               firstNameKana: data.firstNameKana || "",
               email: data.email || user.email || "",
               nickname: data.nickname || data.firstName || "",
+              birthYear: bYear,
+              birthMonth: bMonth,
+              birthDay: bDay,
               postalCode: address.postalCode || data.postalCode || "",
               prefecture: address.prefecture || data.prefecture || "東京都",
               addressDetail: address.addressDetail || data.addressDetail || "",
@@ -455,9 +470,6 @@ export default function SignupDetailsPage() {
         firstNameKana: formData.firstNameKana,
         nickname: formData.nickname,
         birthDate: birthDateString,
-        birthYear: formData.birthYear,
-        birthMonth: formData.birthMonth,
-        birthDay: formData.birthDay,
         address: {
           postalCode: formData.postalCode,
           prefecture: formData.prefecture,

@@ -2,14 +2,32 @@ import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 /**
+ * ユーザーの種別を表すリテラル型です。
+ * - 'general': 一般ユーザー (市民)
+ * - 'politician': 議員ユーザー
+ * - 'shop': 店舗ユーザー
+ */
+export type UserType = 'general' | 'politician' | 'shop';
+
+/**
  * ユーザープロファイル情報を定義するTypeScriptインターフェースです。
  * Firestoreの `users` コレクションの各ドキュメント構造に対応しています。
  */
 export interface UserProfile {
   /** ユーザーのUID (Firebase AuthのUIDと一致します) */
   uid: string;
+  /** ユーザーの種別 ('general': 一般ユーザー, 'politician': 議員ユーザー, 'shop': 店舗ユーザー) */
+  userType?: UserType;
   /** メールアドレス */
   email: string;
+  /** 所属政党名 (議員ユーザー向け、50文字以内) */
+  politicalParty?: string;
+  /** 掲げる公約や活動方針 (議員ユーザー向け、50文字以上2000文字以内) */
+  pledge?: string;
+  /** 店舗紹介 (店舗ユーザー向け、50文字以上2000文字以内) */
+  shopIntroduction?: string;
+  /** 店舗電話番号 (店舗ユーザー向け、ハイフンなし半角数字15桁以内) */
+  shopPhoneNumber?: string;
   /** 氏名 (苗字 - 漢字など) */
   lastName?: string;
   /** 氏名 (名前 - 漢字など) */
@@ -22,12 +40,6 @@ export interface UserProfile {
   nickname?: string;
   /** 生年月日 (YYYY-MM-DD 形式の文字列) */
   birthDate?: string;
-  /** 生まれた年 (例: "1995") */
-  birthYear?: string;
-  /** 生まれた月 (例: "5") */
-  birthMonth?: string;
-  /** 生まれた日 (例: "15") */
-  birthDay?: string;
   /** フルネーム (姓と名を結合した表示用お名前) */
   displayName?: string;
   /** 

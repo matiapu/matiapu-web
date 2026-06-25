@@ -50,10 +50,6 @@ export interface Disaster {
   occurred_at: Timestamp;
   /** レコード作成日時 */
   created_at: Timestamp;
-  /** 地震の震度 (例: "3", "5弱", "5強" など。地震の場合のみ設定) */
-  seismic_intensity?: string;
-  /** 地震の最大震度コード (例: 30, 45, 50 など。地震の場合のみ設定) */
-  seismic_intensity_code?: number;
 }
 
 /**
