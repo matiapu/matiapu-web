@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
 import styles from './CategoryMap.module.css';
 import Header from '@/components/Header';
-import SideNav from '@/src/components/SideNav';
+import SideNav from '@/components/SideNav';
 import { getDisasters } from '@/src/firebase/disasterDb';
 import Link from 'next/link';
 
@@ -452,10 +452,13 @@ function CategoryMap() {
                 // カテゴリに応じたスタイルを取得（なければdefault）
                 const style = categoryStyles[data.category] || categoryStyles.default;
                 const isSelected = selectedLocation && selectedLocation.lat === data.lat && selectedLocation.lng === data.lng;
+                
+                // ユニークなキーを生成
+                const markerKey = `${data.category}-${data.lat}-${data.lng}-${data.name || index}`;
 
                 return (
                   <AdvancedMarker
-                    key={index}
+                    key={markerKey}
                     position={{ lat: data.lat, lng: data.lng }}
                     title={data.name}
                     onClick={(e) => {

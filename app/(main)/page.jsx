@@ -1,4 +1,4 @@
-import SideNav from "@/src/components/SideNav"
+import SideNav from "@/components/SideNav"
 import CategoryMap from "@/components/CategoryMap"
 import Header from "@/components/Header"
 
