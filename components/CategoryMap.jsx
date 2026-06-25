@@ -176,6 +176,11 @@ function CategoryMap() {
   const [mapCenter, setMapCenter] = useState({ lat: 35.681228, lng: 139.767052 });
   const [mapZoom, setMapZoom] = useState(14);
 
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category);
+    setSelectedLocation(null);
+  };
+
   // コンポーネントマウント時にデータ取得
   useEffect(() => {
     const loadLocations = async () => {
