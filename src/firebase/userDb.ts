@@ -56,28 +56,10 @@ export interface UserProfile {
     buildingName?: string;
   };
   /**
-   * プロフィール画像情報 (マップ形式でグループ化)
-   * 切り抜きを行わない場合は null もしくは未設定になります。
+   * プロフィール画像のダウンロードURL
+   * 画像が設定されていない場合は null もしくは未設定になります。
    */
-  profileImage?: {
-    /** Firebase Storageに保存されているオリジナル画像のダウンロードURL */
-    url: string;
-    /** 
-     * クライアント側（CSS）でオリジナル画像を丸型フレーム内に切り抜いて表示するための座標パラメータ
-     */
-    cropPosition: {
-      /** ビューポートに対する画像の横方向オフセット量 (px単位) */
-      offsetX: number;
-      /** ビューポートに対する画像の縦方向オフセット量 (px単位) */
-      offsetY: number;
-      /** 切り抜き時のズーム率 (1.0 〜 3.0 の倍率値) */
-      zoom: number;
-      /** クロップエリア表示時のベースとなる画像の横幅 (px単位) */
-      displayW: number;
-      /** クロップエリア表示時のベースとなる画像の縦幅 (px単位) */
-      displayH: number;
-    } | null;
-  } | null;
+  profileImage?: string | null;
   /** メールアドレス認証が完了しているかどうかのフラグ */
   isVerified?: boolean;
   /** プロフィール詳細登録が完了しているかどうかのフラグ */
