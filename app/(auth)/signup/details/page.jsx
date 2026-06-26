@@ -59,6 +59,7 @@ export default function SignupDetailsPage() {
   const [imgDisplaySize, setImgDisplaySize] = useState({ width: 0, height: 0 });
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [savedCropPosition, setSavedCropPosition] = useState(null);
+  const [isImageAlreadySet, setIsImageAlreadySet] = useState(false);
 
   // フォームデータ
   const [formData, setFormData] = useState({
@@ -149,6 +150,7 @@ export default function SignupDetailsPage() {
 
             if (imageUrl) {
               setAvatarPreview(imageUrl);
+              setIsImageAlreadySet(true);
             }
             if (cropPos) {
               setSavedCropPosition(cropPos);
@@ -167,6 +169,7 @@ export default function SignupDetailsPage() {
 
             if (user.photoURL) {
               setAvatarPreview(user.photoURL);
+              setIsImageAlreadySet(true);
             }
           }
         } catch (err) {
@@ -231,6 +234,7 @@ export default function SignupDetailsPage() {
 
   // アバター画像クリック時の処理
   const handleAvatarClick = () => {
+    if (isImageAlreadySet) return; // 既に画像がある場合は編集不可
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -252,6 +256,32 @@ export default function SignupDetailsPage() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // 切り抜き範囲（200x200のサークル、オフセット40px）から画像がはみ出さないようにオフセットをクランプする関数
+  const clampOffset = (x, y, currentZoom) => {
+    const w = imgDisplaySize.width * currentZoom;
+    const h = imgDisplaySize.height * currentZoom;
+
+    // x の範囲制限: サークル左端(40px)から右端(240px)
+    // X <= 40 かつ X + W >= 240 => 240 - W <= X <= 40
+    const minX = 240 - w;
+    const maxX = 40;
+    const clampedX = Math.min(Math.max(x, minX), maxX);
+
+    // y の範囲制限: サークル上端(40px)から下端(240px)
+    // Y <= 40 かつ Y + H >= 240 => 240 - H <= Y <= 40
+    const minY = 240 - h;
+    const maxY = 40;
+    const clampedY = Math.min(Math.max(y, minY), maxY);
+
+    return { x: clampedX, y: clampedY };
+  };
+
+  // ズーム変更時の処理（位置調整オフセットがはみ出さないように再クランプ）
+  const handleZoomChange = (newZoom) => {
+    setZoom(newZoom);
+    setCropOffset((prev) => clampOffset(prev.x, prev.y, newZoom));
   };
 
   // 切り抜きモーダル内で画像読み込み完了時のサイズ設定
@@ -290,10 +320,9 @@ export default function SignupDetailsPage() {
 
   const handleMouseMove = (e) => {
     if (!isDragging) return;
-    setCropOffset({
-      x: e.clientX - dragStartRef.current.x,
-      y: e.clientY - dragStartRef.current.y,
-    });
+    const rawX = e.clientX - dragStartRef.current.x;
+    const rawY = e.clientY - dragStartRef.current.y;
+    setCropOffset(clampOffset(rawX, rawY, zoom));
   };
 
   const handleMouseUp = () => {
@@ -313,35 +342,48 @@ export default function SignupDetailsPage() {
 
   const handleTouchMove = (e) => {
     if (!isDragging || e.touches.length !== 1) return;
-    setCropOffset({
-      x: e.touches[0].clientX - dragStartRef.current.x,
-      y: e.touches[0].clientY - dragStartRef.current.y,
-    });
+    const rawX = e.touches[0].clientX - dragStartRef.current.x;
+    const rawY = e.touches[0].clientY - dragStartRef.current.y;
+    setCropOffset(clampOffset(rawX, rawY, zoom));
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
   };
 
-  // 切り抜き決定時の処理（表示用座標のみ保存し、元画像をプレビュー）
+  // 切り抜き決定時の処理（Canvasでクロップした画像を生成）
   const handleCropApply = () => {
     if (!cropSrc) return;
 
-    // アップロード用に対象ファイルを元の画像に設定
-    setAvatarFile(originalFile);
-    // プレビュー用に元画像のデータURLを表示
-    setAvatarPreview(cropSrc);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 400; // 出力解像度
+      canvas.height = 400;
+      const ctx = canvas.getContext("2d");
 
-    // クロップ位置座標のみを保存（比率計算に使用）
-    setSavedCropPosition({
-      offsetX: cropOffset.x,
-      offsetY: cropOffset.y,
-      zoom: parseFloat(zoom.toFixed(4)),
-      displayW: imgDisplaySize.width,
-      displayH: imgDisplaySize.height
-    });
+      // クロップ座標の計算
+      const scale = naturalSize.width / (imgDisplaySize.width * zoom);
+      const sx = (40 - cropOffset.x) * scale;
+      const sy = (40 - cropOffset.y) * scale;
+      const sw = 200 * scale;
+      const sh = 200 * scale;
 
-    setIsCropperOpen(false);
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 400, 400);
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const croppedFile = new File([blob], "avatar.jpeg", { type: "image/jpeg" });
+          setAvatarFile(croppedFile);
+          
+          const localUrl = URL.createObjectURL(blob);
+          setAvatarPreview(localUrl);
+          setSavedCropPosition(null); // 以後はCSS調整不要なのでnullに
+        }
+        setIsCropperOpen(false);
+      }, "image/jpeg", 0.85);
+    };
+    img.src = cropSrc;
   };
 
   // 切り抜きキャンセル
@@ -353,51 +395,7 @@ export default function SignupDetailsPage() {
     }
   };
 
-  // 元画像の軽量化のための圧縮関数（最大幅/高さ 1000px）
-  const compressOriginalImage = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          
-          const MAX_SIZE = 1000;
-          let width = img.width;
-          let height = img.height;
-          
-          if (width > height) {
-            if (width > MAX_SIZE) {
-              height *= MAX_SIZE / width;
-              width = MAX_SIZE;
-            }
-          } else {
-            if (height > MAX_SIZE) {
-              width *= MAX_SIZE / height;
-              height = MAX_SIZE;
-            }
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          canvas.toBlob((blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error("画像の圧縮に失敗しました。"));
-            }
-          }, "image/jpeg", 0.75); // 画質75%でJPEG圧縮
-        };
-        img.onerror = (err) => reject(err);
-        img.src = e.target.result;
-      };
-      reader.onerror = (err) => reject(err);
-      reader.readAsDataURL(file);
-    });
-  };
+
 
   // クロップ座標に基づくCSSスタイル生成ヘルパー
   const getCroppedImgStyle = (cropPos, containerSize = 90) => {
@@ -431,12 +429,11 @@ export default function SignupDetailsPage() {
 
       let imageUrl = formData.profileImage;
 
-      // 画像ファイルが新たに選択されている場合は圧縮してStorageへアップロード
+      // 画像ファイルが新たに選択されている場合はStorageへアップロード
       if (avatarFile) {
         try {
-          const compressedBlob = await compressOriginalImage(avatarFile);
           const storageRef = ref(storage, `users/${currentUser.uid}/profile_image.jpeg`);
-          const uploadResult = await uploadBytes(storageRef, compressedBlob, {
+          const uploadResult = await uploadBytes(storageRef, avatarFile, {
             contentType: "image/jpeg",
           });
           imageUrl = await getDownloadURL(uploadResult.ref);
@@ -447,21 +444,6 @@ export default function SignupDetailsPage() {
       }
 
       const birthDateString = `${formData.birthYear}-${formData.birthMonth.padStart(2, "0")}-${formData.birthDay.padStart(2, "0")}`;
-      
-      // 画像URLと切り抜き座標情報をマップにしてまとめる
-      let profileImagePayload = null;
-      if (imageUrl) {
-        profileImagePayload = {
-          url: imageUrl,
-          cropPosition: savedCropPosition || {
-            offsetX: 40,
-            offsetY: 40,
-            zoom: 1.0,
-            displayW: 200,
-            displayH: 200
-          }
-        };
-      }
 
       const payload = {
         lastName: formData.lastName,
@@ -476,7 +458,7 @@ export default function SignupDetailsPage() {
           addressDetail: formData.addressDetail,
           buildingName: formData.buildingName,
         },
-        profileImage: profileImagePayload,
+        profileImage: imageUrl || null,
         isProfileCompleted: true,
         isRegistered: true,
         updatedAt: new Date().toISOString()
@@ -579,7 +561,11 @@ export default function SignupDetailsPage() {
 
               {/* プロフィール画像アップローダー */}
               <div className={styles.avatarUploadContainer}>
-                <div className={styles.avatarWrapper} onClick={handleAvatarClick}>
+                <div 
+                  className={styles.avatarWrapper} 
+                  onClick={handleAvatarClick}
+                  style={{ cursor: isImageAlreadySet ? "default" : "pointer" }}
+                >
                   <div className={styles.avatarCircle}>
                     {avatarPreview ? (
                       <img 
@@ -594,20 +580,29 @@ export default function SignupDetailsPage() {
                       </svg>
                     )}
                   </div>
-                  <div className={styles.cameraBadge}>
-                    <FontAwesomeIcon icon={faCamera} />
-                  </div>
+                  {!isImageAlreadySet && (
+                    <div className={styles.cameraBadge}>
+                      <FontAwesomeIcon icon={faCamera} />
+                    </div>
+                  )}
                 </div>
-                <span className={styles.avatarLabel} onClick={handleAvatarClick}>
+                <span 
+                  className={styles.avatarLabel} 
+                  onClick={handleAvatarClick}
+                  style={{ cursor: isImageAlreadySet ? "default" : "pointer" }}
+                >
                   プロフィール画像（任意）
                 </span>
-                <p className={styles.avatarSubtext}>マッチング率が向上します</p>
+                <p className={styles.avatarSubtext}>
+                  {isImageAlreadySet ? "画像は変更できません" : "マッチング率が向上します"}
+                </p>
                 <input
                   type="file"
                   ref={fileInputRef}
                   onChange={handleAvatarChange}
                   accept="image/*"
                   style={{ display: "none" }}
+                  disabled={isImageAlreadySet}
                 />
               </div>
 
@@ -975,7 +970,7 @@ export default function SignupDetailsPage() {
                 max="3.0"
                 step="0.05"
                 value={zoom}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
                 className={styles.slider}
                 aria-label="ズーム"
               />
