@@ -1,0 +1,28 @@
+.Comment_Wrapper {
+    width: 1000px;
+    background: rgba(219, 219, 219, 0.8);
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: 12px;
+}
+.Content_wrapper {
+    background: #bdbdbd;
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.reply {
+    border: 2px solid #000;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.Reply_Button {
+    margin-top: 50px;
+    width: 200px;
+    height: 50px;
+    font-size: 16px;
+    border-radius: 30px;
+    background: rgb(176, 176, 176);
+}

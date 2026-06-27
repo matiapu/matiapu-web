@@ -2,14 +2,32 @@ import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 /**
+ * ユーザーの種別を表すリテラル型です。
+ * - 'general': 一般ユーザー (市民)
+ * - 'politician': 議員ユーザー
+ * - 'shop': 店舗ユーザー
+ */
+export type UserType = 'general' | 'politician' | 'shop';
+
+/**
  * ユーザープロファイル情報を定義するTypeScriptインターフェースです。
  * Firestoreの `users` コレクションの各ドキュメント構造に対応しています。
  */
 export interface UserProfile {
   /** ユーザーのUID (Firebase AuthのUIDと一致します) */
   uid: string;
+  /** ユーザーの種別 ('general': 一般ユーザー, 'politician': 議員ユーザー, 'shop': 店舗ユーザー) */
+  userType?: UserType;
   /** メールアドレス */
   email: string;
+  /** 所属政党名 (議員ユーザー向け、50文字以内) */
+  politicalParty?: string;
+  /** 掲げる公約や活動方針 (議員ユーザー向け、50文字以上2000文字以内) */
+  pledge?: string;
+  /** 店舗紹介 (店舗ユーザー向け、50文字以上2000文字以内) */
+  shopIntroduction?: string;
+  /** 店舗電話番号 (店舗ユーザー向け、ハイフンなし半角数字15桁以内) */
+  shopPhoneNumber?: string;
   /** 氏名 (苗字 - 漢字など) */
   lastName?: string;
   /** 氏名 (名前 - 漢字など) */
@@ -22,12 +40,6 @@ export interface UserProfile {
   nickname?: string;
   /** 生年月日 (YYYY-MM-DD 形式の文字列) */
   birthDate?: string;
-  /** 生まれた年 (例: "1995") */
-  birthYear?: string;
-  /** 生まれた月 (例: "5") */
-  birthMonth?: string;
-  /** 生まれた日 (例: "15") */
-  birthDay?: string;
   /** フルネーム (姓と名を結合した表示用お名前) */
   displayName?: string;
   /** 
@@ -44,28 +56,10 @@ export interface UserProfile {
     buildingName?: string;
   };
   /**
-   * プロフィール画像情報 (マップ形式でグループ化)
-   * 切り抜きを行わない場合は null もしくは未設定になります。
+   * プロフィール画像のダウンロードURL
+   * 画像が設定されていない場合は null もしくは未設定になります。
    */
-  profileImage?: {
-    /** Firebase Storageに保存されているオリジナル画像のダウンロードURL */
-    url: string;
-    /** 
-     * クライアント側（CSS）でオリジナル画像を丸型フレーム内に切り抜いて表示するための座標パラメータ
-     */
-    cropPosition: {
-      /** ビューポートに対する画像の横方向オフセット量 (px単位) */
-      offsetX: number;
-      /** ビューポートに対する画像の縦方向オフセット量 (px単位) */
-      offsetY: number;
-      /** 切り抜き時のズーム率 (1.0 〜 3.0 の倍率値) */
-      zoom: number;
-      /** クロップエリア表示時のベースとなる画像の横幅 (px単位) */
-      displayW: number;
-      /** クロップエリア表示時のベースとなる画像の縦幅 (px単位) */
-      displayH: number;
-    } | null;
-  } | null;
+  profileImage?: string | null;
   /** メールアドレス認証が完了しているかどうかのフラグ */
   isVerified?: boolean;
   /** プロフィール詳細登録が完了しているかどうかのフラグ */

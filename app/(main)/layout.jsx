@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/src/firebase/firebase";
 import { getUserProfile } from "@/src/firebase/userDb";
@@ -11,7 +11,10 @@ import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 export default function Layout({ children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [checking, setChecking] = useState(true);
+
+  const isTopPage = pathname === "/";
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -56,7 +59,7 @@ export default function Layout({ children }) {
   return (
     <div>
       <main>
-        <Header />
+        {!isTopPage && <Header />}
         {children}
       </main>
     </div>

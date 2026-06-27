@@ -5,11 +5,12 @@ export default function UserIcon({ iconUrl, userName = "ユーザー", className
   return (
     <div className={`${styles.userIcon} ${className || ""}`}>
       <Image
-        src={iconUrl || '/user_icon/user_icon1.jpg'}
+        src={iconUrl || '/user_Icon/user_icon1.jpg'}
         alt={`${userName}のアイコン`}
         fill
         sizes="300px"
         className={styles.iconImage}
+        unoptimized
       />
     </div>
   );

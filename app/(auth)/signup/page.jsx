@@ -286,12 +286,7 @@ export default function SignupPage() {
       {/* ヘッダー */}
       <header className={styles.header}>
         <div className={styles.logoArea} onClick={() => router.push("/")}>
-          <div className={styles.logoIcon}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C9.5 2 7.5 4 7.5 6.5C7.5 8.5 9 10 10.5 10.5C9 11 7.5 12.5 7.5 14.5C7.5 17 9.5 19 12 19C14.5 19 16.5 17 16.5 14.5C16.5 12.5 15 11 13.5 10.5C15 10 16.5 8.5 16.5 6.5C16.5 4 14.5 2 12 2Z" fill="#3b82f6" />
-              <circle cx="12" cy="12" r="3" fill="#60a5fa" />
-            </svg>
-          </div>
+          <img src="/logo.png" alt="マチアプ" className={styles.logoImage} />
           <span className={styles.logoText}>マチアプ</span>
         </div>
       </header>
@@ -448,9 +443,7 @@ export default function SignupPage() {
                   Googleで登録
                 </button>
                 <button type="button" onClick={() => handleSocialSignup("apple")} className={`${styles.socialButton} ${styles.appleButton}`} disabled={isSubmitting}>
-                  <svg width="16" height="16" viewBox="0 0 170 170" fill="currentColor" className={styles.socialIcon}>
-                    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.34.13-9.13-1.92-14.37-6.15-3.43-2.85-7.37-7.67-11.83-14.46-9.67-14.67-16.14-31.54-19.41-50.61-3.26-19.08-2.01-35.48 3.75-49.2 5.76-13.71 14.89-20.72 27.39-21.03 5.1 0 10.59 1.57 16.48 4.7 5.89 3.13 10.15 4.7 12.78 4.7 2.1 0 6.35-1.57 12.75-4.7 6.4-3.13 11.28-4.53 14.65-4.21 12.22.84 21.67 5.2 28.36 13.1 5.37 6.27 9.17 13.54 11.41 21.82-16.59 7.02-24.64 18.25-24.16 33.7.46 12.24 5.35 22.28 14.7 30.12 7.78 6.47 16.89 10.02 27.34 10.65-2.02 5.75-4.49 11.45-7.39 17.09zM119.22 35.61c0-7.83 2.76-14.93 8.28-21.3C133 8.35 140.42 4.43 149.77 2.53c.12 1.05.18 1.9.18 2.53 0 7.49-2.82 14.45-8.46 20.89-5.64 6.44-12.79 10.54-21.46 12.3-1.26-.95-2.07-1.85-2.43-2.7-5.62-5.46-8.38-12.1-8.38-19.94z" />
-                  </svg>
+                  <img src="/apple_rainbow.svg" alt="Apple logo" className={styles.socialIcon} style={{ width: "16px", height: "16px" }} />
                   Appleでサインアップ
                 </button>
               </div>
