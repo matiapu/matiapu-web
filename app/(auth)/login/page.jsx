@@ -146,7 +146,7 @@ export default function LoginPage() {
                 <label htmlFor="password" className={styles.label}>
                   パスワード
                 </label>
-                <Link href="#" className={styles.forgotPassword}>
+                <Link href={`/forgot-password?email=${encodeURIComponent(email)}`} className={styles.forgotPassword}>
                   パスワードをお忘れの方
                 </Link>
               </div>
@@ -202,6 +202,13 @@ export default function LoginPage() {
             アカウントをお持ちでないですか？
             <Link href="/signup" className={styles.signupLink}>
               新規登録はこちら
+            </Link>
+          </div>
+
+          <div className={styles.cardFooter} style={{ marginTop: "12px", borderTop: "1px dashed #e1e5f2", paddingTop: "12px" }}>
+            店舗の方はこちら：
+            <Link href="/signup/store" className={styles.signupLink} style={{ color: "#003db3", fontWeight: "bold" }}>
+              店舗用アカウントの新規登録
             </Link>
           </div>
         </div>

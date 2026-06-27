@@ -25,7 +25,11 @@ export default function Layout({ children }) {
           if (data) {
             // プロフィール詳細登録が未完了の場合は詳細登録画面へ強制移動
             if (!data.isProfileCompleted && !data.isRegistered) {
-              router.replace("/signup/details");
+              if (data.userType === "shop") {
+                router.replace("/signup/store/details");
+              } else {
+                router.replace("/signup/details");
+              }
               return;
             }
           } else {

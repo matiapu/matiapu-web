@@ -5,24 +5,20 @@ import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash, faEnvelope, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
-import styles from "./Signup.module.css";
+import styles from "../Signup.module.css";
 
 // Firebase Auth & Centralized Firestore Database Operations
-import { createUserWithEmailAndPassword, signInWithPopup, updateProfile, sendEmailVerification, signOut } from "firebase/auth";
-import { auth, googleProvider, appleProvider } from "@/src/firebase/firebase";
+import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
+import { auth } from "@/src/firebase/firebase";
 import { saveUserProfile, updateUserProfile } from "@/src/firebase/userDb";
 
-export default function SignupPage() {
+export default function StoreSignupPage() {
   const router = useRouter();
   
   // 画面ステップ管理 ('register': アカウント作成フォーム, 'verify': メール認証待機画面)
   const [step, setStep] = useState("register");
   
-  // フォーム入力値 (姓名・フリガナ分割)
-  const [lastName, setLastName] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastNameKana, setLastNameKana] = useState("");
-  const [firstNameKana, setFirstNameKana] = useState("");
+  // フォーム入力値
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   
@@ -60,8 +56,8 @@ export default function SignupPage() {
             const expireTime = 60 * 60 * 24; // 1日
             document.cookie = `session=${encodeURIComponent(auth.currentUser.email)}; path=/; max-age=${expireTime}; SameSite=Lax;`;
             
-            // 3. 詳細登録ページへ遷移
-            router.push("/signup/details");
+            // 3. 店舗用の詳細登録ページへ遷移
+            router.push("/signup/store/details");
             router.refresh();
           }
         } catch (err) {
@@ -75,39 +71,10 @@ export default function SignupPage() {
     };
   }, [step, router]);
 
-  // ひらがなを全角カタカナに変換するヘルパー関数
-  const toKatakana = (str) => {
-    return str.replace(/[\u3041-\u3096]/g, (match) => {
-      return String.fromCharCode(match.charCodeAt(0) + 0x60);
-    });
-  };
-
-  // お名前（姓）入力変更時のハンドラ
-  const handleLastNameChange = (val) => {
-    setLastName(val);
-    
-    // 入力値が「ひらがな・カタカナ・長音・スペース」のみの場合にフリガナへ自動コピー
-    const isKanaOrAlpha = /^[ぁ-んァ-ンー\s]*$/.test(val);
-    if (isKanaOrAlpha) {
-      setLastNameKana(toKatakana(val));
-    }
-  };
-
-  // お名前（名）入力変更時のハンドラ
-  const handleFirstNameChange = (val) => {
-    setFirstName(val);
-    
-    // 入力値が「ひらがな・カタカナ・長音・スペース」のみの場合にフリガナへ自動コピー
-    const isKanaOrAlpha = /^[ぁ-んァ-ンー\s]*$/.test(val);
-    if (isKanaOrAlpha) {
-      setFirstNameKana(toKatakana(val));
-    }
-  };
-
   // アカウント新規登録処理
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
-    if (!lastName || !firstName || !lastNameKana || !firstNameKana || !email || !password) {
+    if (!email || !password) {
       setError("すべての項目を入力してください。");
       return;
     }
@@ -131,27 +98,19 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. displayName（姓名を結合した文字列）を設定
-      const fullName = `${lastName} ${firstName}`;
-      await updateProfile(user, { displayName: fullName });
-
-      // 3. Firebase標準の確認メール（検証用リンク）を送信
+      // 2. Firebase標準の確認メール（検証用リンク）を送信
       await sendEmailVerification(user);
 
-      // 4. Firestoreにアカウント情報を一時登録（認証ステータス: false）
+      // 3. Firestoreにアカウント情報を一時登録（認証ステータス: false, userType: 'shop'）
       await saveUserProfile(user.uid, {
         uid: user.uid,
         email: user.email || "",
-        lastName,
-        firstName,
-        lastNameKana,
-        firstNameKana,
-        displayName: fullName,
+        userType: "shop",
         isVerified: false,
         createdAt: new Date().toISOString()
       });
 
-      // 5. メール認証待機ステップへ移行
+      // 4. メール認証待機ステップへ移行
       setStep("verify");
       setInfoMessage("確認メールを送信しました。メールボックスを確認してください。");
     } catch (err) {
@@ -189,8 +148,8 @@ export default function SignupPage() {
         const expireTime = 60 * 60 * 24; // 1日
         document.cookie = `session=${encodeURIComponent(auth.currentUser.email)}; path=/; max-age=${expireTime}; SameSite=Lax;`;
 
-        // 3. 詳細登録ページへ遷移
-        router.push("/signup/details");
+        // 3. 店舗用詳細登録ページへ遷移
+        router.push("/signup/store/details");
         router.refresh();
       } else {
         setError("メール認証が完了していません。届いたメールのURLリンクをクリックしてください。");
@@ -238,49 +197,6 @@ export default function SignupPage() {
     setInfoMessage("");
   };
 
-  // ソーシャルサインアップ（Google/Apple）
-  const handleSocialSignup = async (providerName) => {
-    setIsSubmitting(true);
-    setError("");
-    setInfoMessage("");
-    const provider = providerName === "google" ? googleProvider : appleProvider;
-
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // ソーシャルログインの場合は、すでに外部で本人確認済みのため、メール認証はスキップし直接有効化
-      const [socialLastName, socialFirstName] = (user.displayName || "").split(" ");
-      
-      await saveUserProfile(user.uid, {
-        uid: user.uid,
-        email: user.email || "",
-        lastName: socialLastName || "",
-        firstName: socialFirstName || user.displayName || "",
-        lastNameKana: "",
-        firstNameKana: "",
-        displayName: user.displayName || providerName + "-user",
-        isVerified: true, // ソーシャルは初期から有効
-        createdAt: new Date().toISOString()
-      });
-
-      // セッションCookieを作成
-      const expireTime = 60 * 60 * 24; // 1日
-      document.cookie = `session=${encodeURIComponent(user.email || user.uid)}; path=/; max-age=${expireTime}; SameSite=Lax;`;
-
-      // 別の詳細登録ページへ遷移
-      router.push("/signup/details");
-      router.refresh();
-    } catch (err) {
-      console.error("Social signup error:", err);
-      if (err.code !== "auth/popup-closed-by-user") {
-        setError(`${providerName === "google" ? "Google" : "Apple"}での登録に失敗しました。`);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className={styles.pageWrapper}>
       {/* ヘッダー */}
@@ -295,89 +211,17 @@ export default function SignupPage() {
       <main className={styles.mainContent}>
         <div className={styles.card}>
           {step === "register" ? (
-            /* STEP 1: 通常のアカウント作成画面 */
+            /* STEP 1: 店舗用アカウント作成画面 */
             <>
               <div className={styles.titleArea}>
-                <h1 className={styles.title}>アカウント作成</h1>
-                <p className={styles.subtitle}>必要事項を入力して登録を完了してください</p>
+                <h1 className={styles.title}>店舗アカウント作成</h1>
+                <p className={styles.subtitle}>メールアドレスを入力して登録を開始してください</p>
               </div>
 
               {error && <div style={{ color: "#ef4444", fontSize: "14px", marginBottom: "16px", textAlign: "center", lineHeight: "1.4" }}>{error}</div>}
 
               <form onSubmit={handleSignupSubmit} className={styles.form}>
                 
-                {/* お名前入力 (姓・名横並び) */}
-                <div className={styles.gridRow}>
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="lastName" className={styles.label}>
-                      お名前（姓）
-                    </label>
-                    <div className={styles.inputWrapper}>
-                      <input
-                        id="lastName"
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => handleLastNameChange(e.target.value)}
-                        placeholder="山田"
-                        className={styles.input}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="firstName" className={styles.label}>
-                      お名前（名）
-                    </label>
-                    <div className={styles.inputWrapper}>
-                      <input
-                        id="firstName"
-                        type="text"
-                        value={firstName}
-                        onChange={(e) => handleFirstNameChange(e.target.value)}
-                        placeholder="太郎"
-                        className={styles.input}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* フリガナ入力 (セイ・メイ横並び) */}
-                <div className={styles.gridRow}>
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="lastNameKana" className={styles.label}>
-                      フリガナ（セイ）
-                    </label>
-                    <div className={styles.inputWrapper}>
-                      <input
-                        id="lastNameKana"
-                        type="text"
-                        value={lastNameKana}
-                        onChange={(e) => setLastNameKana(e.target.value)}
-                        placeholder="ヤマダ"
-                        className={styles.input}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="firstNameKana" className={styles.label}>
-                      フリガナ（メイ）
-                    </label>
-                    <div className={styles.inputWrapper}>
-                      <input
-                        id="firstNameKana"
-                        type="text"
-                        value={firstNameKana}
-                        onChange={(e) => setFirstNameKana(e.target.value)}
-                        placeholder="タロウ"
-                        className={styles.input}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 {/* メールアドレス入力 */}
                 <div className={styles.inputGroup}>
                   <label htmlFor="email" className={styles.label}>
@@ -389,7 +233,7 @@ export default function SignupPage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="example@mail.com"
+                      placeholder="store-admin@example.com"
                       className={styles.input}
                       required
                     />
@@ -428,27 +272,7 @@ export default function SignupPage() {
                 </button>
               </form>
 
-              {/* または */}
-              <div className={styles.divider}>または</div>
-
-              {/* ソーシャルサインアップ */}
-              <div className={styles.socialButtons}>
-                <button type="button" onClick={() => handleSocialSignup("google")} className={`${styles.socialButton} ${styles.googleButton}`} disabled={isSubmitting}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" className={styles.socialIcon}>
-                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69a5.74 5.74 0 0 1-2.49 3.77v3.12h4.01c2.34-2.16 3.68-5.32 3.68-8.74Z" />
-                    <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-4.01-3.12c-1.12.75-2.54 1.19-3.95 1.19-3.05 0-5.63-2.06-6.55-4.83H1.31v3.22A12 12 0 0 0 12 24Z" />
-                    <path fill="#FBBC05" d="M5.45 14.33a7.14 7.14 0 0 1 0-4.66V6.45H1.31a12 12 0 0 0 0 11.1l4.14-3.22Z" />
-                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42A12 12 0 0 0 1.31 6.45L5.45 9.67c.92-2.77 3.5-4.83 6.55-4.83Z" />
-                  </svg>
-                  Googleで登録
-                </button>
-                <button type="button" onClick={() => handleSocialSignup("apple")} className={`${styles.socialButton} ${styles.appleButton}`} disabled={isSubmitting}>
-                  <img src="/apple_rainbow.svg" alt="Apple logo" className={styles.socialIcon} style={{ width: "16px", height: "16px" }} />
-                  Appleでサインアップ
-                </button>
-              </div>
-
-              {/* ログインへ */}
+              {/* ログイン・通常登録へ */}
               <div className={styles.cardFooter}>
                 すでにアカウントをお持ちですか？
                 <Link href="/login" className={styles.signupLink}>
@@ -457,9 +281,9 @@ export default function SignupPage() {
               </div>
 
               <div className={styles.cardFooter} style={{ marginTop: "12px", borderTop: "1px dashed #e1e5f2", paddingTop: "12px" }}>
-                店舗の方はこちら：
-                <Link href="/signup/store" className={styles.signupLink} style={{ color: "#003db3", fontWeight: "bold" }}>
-                  店舗用アカウントの新規登録
+                一般・議員の方はこちら：
+                <Link href="/signup" className={styles.signupLink} style={{ color: "#003db3", fontWeight: "bold" }}>
+                  一般アカウントの新規登録
                 </Link>
               </div>
             </>
@@ -472,7 +296,7 @@ export default function SignupPage() {
                 </div>
                 <h1 className={styles.title}>メール認証を実施中</h1>
                 <p className={styles.subtitle}>
-                  ご登録のメールアドレス宛に確認メールを送信しました。<br />
+                  ご登録の店舗メールアドレス宛に確認メールを送信しました。<br />
                   メールに記載されているリンクをクリックして<br />
                   認証を完了してください。
                 </p>
@@ -525,15 +349,9 @@ export default function SignupPage() {
       {/* フッター */}
       <footer className={styles.footer}>
         <div className={styles.footerLinks}>
-          <Link href="#" className={styles.footerLink}>
-            Support
-          </Link>
-          <Link href="#" className={styles.footerLink}>
-            Privacy Policy
-          </Link>
-          <Link href="#" className={styles.footerLink}>
-            Terms of Service
-          </Link>
+          <Link href="#" className={styles.footerLink}>Support</Link>
+          <Link href="#" className={styles.footerLink}>Privacy Policy</Link>
+          <Link href="#" className={styles.footerLink}>Terms of Service</Link>
         </div>
         <p className={styles.copyright}>&copy; 2024 SecureAuth Inc. All rights reserved.</p>
       </footer>
