@@ -5,7 +5,12 @@ export function proxy(request) {
   const { pathname } = request.nextUrl;
 
   // ログイン不要でアクセス可能な認証関連ページ (ただし詳細は除く)
-  if (pathname === '/login' || pathname === '/signup') {
+  if (
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/signup/store' ||
+    pathname === '/forgot-password'
+  ) {
     // セッションがある場合はトップページにリダイレクト
     if (session) {
       return NextResponse.redirect(new URL('/', request.url));

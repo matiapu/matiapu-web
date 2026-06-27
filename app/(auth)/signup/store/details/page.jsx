@@ -11,13 +11,15 @@ import {
   faShieldHalved, 
   faChevronRight, 
   faCircleQuestion,
-  faCamera
+  faCamera,
+  faEye,
+  faEyeSlash
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
-import styles from "./Details.module.css";
+import styles from "../StoreDetails.module.css";
 
 // Firebase Auth, Storage, and Centralized Firestore Database Operations
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, updatePassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, storage } from "@/src/firebase/firebase";
 import { getUserProfile, saveUserProfile } from "@/src/firebase/userDb";
@@ -33,7 +35,7 @@ const PREFECTURES = [
   "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
 ];
 
-export default function SignupDetailsPage() {
+export default function StoreSignupDetailsPage() {
   const router = useRouter();
   const fileInputRef = useRef(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
@@ -44,10 +46,6 @@ export default function SignupDetailsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
-
-  // 新規追加: アカウント種別 ('general': 一般, 'politician': 議員) & ソーシャルユーザー判定
-  const [accountType, setAccountType] = useState("general");
-  const [isSocialUser, setIsSocialUser] = useState(false);
 
   // プロフィール画像の状態
   const [originalFile, setOriginalFile] = useState(null);
@@ -67,62 +65,40 @@ export default function SignupDetailsPage() {
 
   // フォームデータ
   const [formData, setFormData] = useState({
-    lastName: "",
-    firstName: "",
-    lastNameKana: "",
-    firstNameKana: "",
+    shopName: "",
+    shopIntroduction: "",
+    shopPhoneNumber: "",
     email: "",
-    nickname: "",
-    birthYear: "1995",
-    birthMonth: "5",
-    birthDay: "15",
     postalCode: "",
     prefecture: "東京都",
     addressDetail: "",
     buildingName: "",
     profileImage: "",
-    politicalParty: "", // 議員用: 政党
-    pledge: "",         // 議員用: 公約・活動方針
   });
 
-  // 生年月日用の選択肢生成
-  const currentYear = new Date().getFullYear();
-  const years = [];
-  // 18歳以上を対象にする（現在年-18歳から1940年まで）
-  const maxYear = currentYear - 18;
-  for (let y = maxYear; y >= 1940; y--) {
-    years.push(y);
-  }
-  const months = Array.from({ length: 12 }, (_, i) => i + 1);
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  // パスワード変更
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // 認証状態の監視 & Firestore情報の取得
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
-        
-        // ソーシャルアカウント（Google/Apple）判定
-        const providers = user.providerData.map((p) => p.providerId);
-        const isSocial = providers.includes("google.com") || providers.includes("apple.com");
-        setIsSocialUser(isSocial);
-
         try {
           const data = await getUserProfile(user.uid);
           
           if (data) {
-            
+            // 他のアカウントタイプで店舗登録画面に来た場合はリダイレクト
+            if (data.userType && data.userType !== "shop") {
+              router.replace("/signup/details");
+              return;
+            }
+
             // すでに登録完了している場合はトップへリダイレクト
             if (data.isProfileCompleted || data.isRegistered) {
               router.replace("/");
               return;
-            }
-
-            // userType が保存されている場合はセット
-            if (data.userType) {
-              setAccountType(data.userType);
-            } else if (isSocial) {
-              setAccountType("general");
             }
 
             const address = data.address || {};
@@ -137,36 +113,17 @@ export default function SignupDetailsPage() {
               cropPos = profileImageMap.cropPosition || null;
             }
 
-            let bYear = "1995";
-            let bMonth = "5";
-            let bDay = "15";
-            if (data.birthDate) {
-              const parts = data.birthDate.split("-");
-              if (parts.length === 3) {
-                bYear = parts[0];
-                bMonth = parseInt(parts[1], 10).toString();
-                bDay = parseInt(parts[2], 10).toString();
-              }
-            }
-
             setFormData((prev) => ({
               ...prev,
-              lastName: data.lastName || "",
-              firstName: data.firstName || "",
-              lastNameKana: data.lastNameKana || "",
-              firstNameKana: data.firstNameKana || "",
+              shopName: data.displayName || "",
+              shopIntroduction: data.shopIntroduction || "",
+              shopPhoneNumber: data.shopPhoneNumber || "",
               email: data.email || user.email || "",
-              nickname: data.nickname || data.firstName || "",
-              birthYear: bYear,
-              birthMonth: bMonth,
-              birthDay: bDay,
               postalCode: address.postalCode || data.postalCode || "",
               prefecture: address.prefecture || data.prefecture || "東京都",
               addressDetail: address.addressDetail || data.addressDetail || "",
               buildingName: address.buildingName || data.buildingName || "",
               profileImage: imageUrl,
-              politicalParty: data.politicalParty || "",
-              pledge: data.pledge || "",
             }));
 
             if (imageUrl) {
@@ -177,23 +134,11 @@ export default function SignupDetailsPage() {
               setSavedCropPosition(cropPos);
             }
           } else {
-            // Firestoreドキュメントが無い場合（ソーシャル連携など）
-            const [socialLastName, socialFirstName] = (user.displayName || "").split(" ");
+            // ドキュメントがない場合も、このURLにいる時点で店舗ユーザーとして扱う
             setFormData((prev) => ({
               ...prev,
-              lastName: socialLastName || "",
-              firstName: socialFirstName || user.displayName || "",
               email: user.email || "",
-              nickname: socialFirstName || user.displayName || "",
-              profileImage: user.photoURL || "",
-              politicalParty: "",
-              pledge: "",
             }));
-
-            if (user.photoURL) {
-              setAvatarPreview(user.photoURL);
-              setIsImageAlreadySet(true);
-            }
           }
         } catch (err) {
           console.error("Firestore loading error:", err);
@@ -219,16 +164,25 @@ export default function SignupDetailsPage() {
   }, [avatarPreview]);
 
   // 入力値バリデーション判定
-  const isNicknameValid = formData.nickname.trim().length > 0;
-  const isBirthdateValid = !!(formData.birthYear && formData.birthMonth && formData.birthDay);
+  const isShopNameValid = formData.shopName.trim().length > 0 && formData.shopName.length <= 50;
+  const isShopIntroductionValid = formData.shopIntroduction.trim().length >= 50 && formData.shopIntroduction.length <= 2000;
+  
+  // ハイフンなしの半角数字15桁以内
+  const isShopPhoneNumberValid = /^[0-9]{10,15}$/.test(formData.shopPhoneNumber.replace(/-/g, ""));
+  
   const isAddressValid = 
     formData.postalCode.replace(/-/g, "").length === 7 && 
     !!formData.prefecture && 
     formData.addressDetail.trim().length > 0;
 
-  // 議員用バリデーション
-  const isPoliticalPartyValid = formData.politicalParty.trim().length > 0;
-  const isPledgeValid = formData.pledge.trim().length >= 50 && formData.pledge.trim().length <= 2000;
+  // パスワード確認（12〜64文字、英大文字・英小文字・数字の混在必須。空の場合は変更なしのため有効）
+  const isPasswordValid = 
+    newPassword === "" || 
+    (newPassword.length >= 12 && 
+     newPassword.length <= 64 && 
+     /[A-Z]/.test(newPassword) && 
+     /[a-z]/.test(newPassword) && 
+     /[0-9]/.test(newPassword));
 
   // 郵便番号から住所を自動検索する処理
   const handleZipSearch = async () => {
@@ -285,49 +239,35 @@ export default function SignupDetailsPage() {
     }
   };
 
-  // 切り抜き範囲（200x200のサークル、オフセット40px）から画像がはみ出さないようにオフセットをクランプする関数
+  // クロップオフセット制限
   const clampOffset = (x, y, currentZoom) => {
     const w = imgDisplaySize.width * currentZoom;
     const h = imgDisplaySize.height * currentZoom;
-
-    // x の範囲制限: サークル左端(40px)から右端(240px)
-    // X <= 40 かつ X + W >= 240 => 240 - W <= X <= 40
     const minX = 240 - w;
     const maxX = 40;
     const clampedX = Math.min(Math.max(x, minX), maxX);
-
-    // y の範囲制限: サークル上端(40px)から下端(240px)
-    // Y <= 40 かつ Y + H >= 240 => 240 - H <= Y <= 40
     const minY = 240 - h;
     const maxY = 40;
     const clampedY = Math.min(Math.max(y, minY), maxY);
-
     return { x: clampedX, y: clampedY };
   };
 
-  // ズーム変更時の処理（位置調整オフセットがはみ出さないように再クランプ）
   const handleZoomChange = (newZoom) => {
     setZoom(newZoom);
     setCropOffset((prev) => clampOffset(prev.x, prev.y, newZoom));
   };
 
-  // 切り抜きモーダル内で画像読み込み完了時のサイズ設定
   const handleImageLoad = (e) => {
     const { naturalWidth, naturalHeight } = e.target;
     let w = 280;
     let h = 280;
-    
-    // 短い方の辺が280pxになるように初期表示サイズを調整
     if (naturalWidth > naturalHeight) {
       w = (naturalWidth / naturalHeight) * 280;
     } else {
       h = (naturalHeight / naturalWidth) * 280;
     }
-
     setImgDisplaySize({ width: w, height: h });
     setNaturalSize({ width: naturalWidth, height: naturalHeight });
-    
-    // 初期配置をビューポート中央に設定
     setCropOffset({
       x: (280 - w) / 2,
       y: (280 - h) / 2,
@@ -335,7 +275,6 @@ export default function SignupDetailsPage() {
     setZoom(1.0);
   };
 
-  // ドラッグ操作（マウス）
   const handleMouseDown = (e) => {
     e.preventDefault();
     setIsDragging(true);
@@ -356,7 +295,6 @@ export default function SignupDetailsPage() {
     setIsDragging(false);
   };
 
-  // ドラッグ操作（タッチ）
   const handleTouchStart = (e) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
@@ -374,38 +312,27 @@ export default function SignupDetailsPage() {
     setCropOffset(clampOffset(rawX, rawY, zoom));
   };
 
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-  };
-
-  // 切り抜き決定時の処理（Canvasでクロップした画像を生成）
   const handleCropApply = () => {
     if (!cropSrc) return;
-
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = 400; // 出力解像度
+      canvas.width = 400;
       canvas.height = 400;
       const ctx = canvas.getContext("2d");
-
-      // クロップ座標の計算
       const scale = naturalSize.width / (imgDisplaySize.width * zoom);
       const sx = (40 - cropOffset.x) * scale;
       const sy = (40 - cropOffset.y) * scale;
       const sw = 200 * scale;
       const sh = 200 * scale;
-
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 400, 400);
-
       canvas.toBlob((blob) => {
         if (blob) {
           const croppedFile = new File([blob], "avatar.jpeg", { type: "image/jpeg" });
           setAvatarFile(croppedFile);
-          
           const localUrl = URL.createObjectURL(blob);
           setAvatarPreview(localUrl);
-          setSavedCropPosition(null); // 以後はCSS調整不要なのでnullに
+          setSavedCropPosition(null);
         }
         setIsCropperOpen(false);
       }, "image/jpeg", 0.85);
@@ -413,7 +340,6 @@ export default function SignupDetailsPage() {
     img.src = cropSrc;
   };
 
-  // 切り抜きキャンセル
   const handleCropCancel = () => {
     setIsCropperOpen(false);
     setCropSrc("");
@@ -422,12 +348,8 @@ export default function SignupDetailsPage() {
     }
   };
 
-
-
-  // クロップ座標に基づくCSSスタイル生成ヘルパー
   const getCroppedImgStyle = (cropPos, containerSize = 90) => {
     if (!cropPos) return { width: "100%", height: "100%", objectFit: "cover" };
-    // クロップ時のビューポート内のサークル基準(200px)に対する倍率
     const ratio = containerSize / 200;
     return {
       position: "absolute",
@@ -443,16 +365,9 @@ export default function SignupDetailsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (accountType === "general") {
-      if (!isNicknameValid || !isBirthdateValid || !isAddressValid) {
-        setError("入力内容に不備があります。必須項目を正しく入力してください。");
-        return;
-      }
-    } else {
-      if (!isPoliticalPartyValid || !isPledgeValid || !isAddressValid) {
-        setError("入力内容に不備があります。必須項目を正しく入力してください。");
-        return;
-      }
+    if (!isShopNameValid || !isShopIntroductionValid || !isShopPhoneNumberValid || !isAddressValid || !isPasswordValid) {
+      setError("入力内容に不備があります。必須項目を正しく入力してください。");
+      return;
     }
 
     setIsSubmitting(true);
@@ -463,7 +378,7 @@ export default function SignupDetailsPage() {
 
       let imageUrl = formData.profileImage;
 
-      // 画像ファイルが新たに選択されている場合はStorageへアップロード
+      // 画像のアップロード
       if (avatarFile) {
         try {
           const storageRef = ref(storage, `users/${currentUser.uid}/profile_image.jpeg`);
@@ -473,15 +388,27 @@ export default function SignupDetailsPage() {
           imageUrl = await getDownloadURL(uploadResult.ref);
         } catch (imgErr) {
           console.error("Profile image upload failed:", imgErr);
-          throw new Error("プロフィールの画像のアップロードに失敗しました: " + imgErr.message);
+          throw new Error("店舗画像のアップロードに失敗しました: " + imgErr.message);
+        }
+      }
+
+      // パスワードの変更が入力されている場合は更新
+      if (newPassword !== "") {
+        try {
+          await updatePassword(currentUser, newPassword);
+        } catch (passErr) {
+          console.error("Password update failed:", passErr);
+          if (passErr.code === "auth/requires-recent-login") {
+            throw new Error("セキュリティ確保のため、パスワード変更には再ログインが必要です。一度ログアウトし、再ログインしてからお試しください。");
+          }
+          throw new Error("パスワードの変更に失敗しました: " + passErr.message);
         }
       }
 
       const payload = {
-        lastName: formData.lastName,
-        firstName: formData.firstName,
-        lastNameKana: formData.lastNameKana,
-        firstNameKana: formData.firstNameKana,
+        displayName: formData.shopName,
+        shopIntroduction: formData.shopIntroduction,
+        shopPhoneNumber: formData.shopPhoneNumber.replace(/-/g, ""),
         address: {
           postalCode: formData.postalCode,
           prefecture: formData.prefecture,
@@ -489,42 +416,29 @@ export default function SignupDetailsPage() {
           buildingName: formData.buildingName,
         },
         profileImage: imageUrl || null,
-        userType: accountType,
+        userType: "shop",
         isProfileCompleted: true,
         isRegistered: true,
         updatedAt: new Date().toISOString()
       };
 
-      if (accountType === "general") {
-        const birthDateString = `${formData.birthYear}-${formData.birthMonth.padStart(2, "0")}-${formData.birthDay.padStart(2, "0")}`;
-        payload.nickname = formData.nickname;
-        payload.birthDate = birthDateString;
-        payload.displayName = formData.nickname;
-      } else {
-        payload.politicalParty = formData.politicalParty;
-        payload.pledge = formData.pledge;
-        payload.displayName = `${formData.lastName} ${formData.firstName}`;
-      }
-
-      // Firestoreのユーザー情報を更新
+      // Firestoreに保存
       await saveUserProfile(currentUser.uid, payload);
 
       // セッションCookieの有効期限を更新
       const expireTime = 60 * 60 * 24; // 1日
       document.cookie = `session=${encodeURIComponent(currentUser.email || currentUser.uid)}; path=/; max-age=${expireTime}; SameSite=Lax;`;
 
-      // 登録完了画面（Step 3）へ遷移
+      // 完了画面へ
       setStep(3);
     } catch (err) {
       console.error("Submit profile error:", err);
-      setError(err.message || "情報の登録に失敗しました。時間をおいてもう一度お試しください。");
+      setError(err.message || "店舗情報の登録に失敗しました。お手数ですが時間をおいて再度お試しください。");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-
-  // 進捗バーの描画
   const renderProgressBar = () => {
     return (
       <div className={styles.progressContainer}>
@@ -586,53 +500,21 @@ export default function SignupDetailsPage() {
       <main className={styles.mainContent}>
         <div className={styles.card}>
           {loading ? (
-            /* 読み込み中表示 */
             <div className={styles.loadingContainer}>
               <FontAwesomeIcon icon={faSpinner} spin size="2x" style={{ color: "#003db3" }} />
               <p>ユーザー情報を読み込み中...</p>
             </div>
           ) : step === 2 ? (
-            /* STEP 2: プロフィール情報入力フォーム */
+            /* STEP 2: 店舗プロフィール登録フォーム */
             <>
               <div className={styles.titleArea}>
                 <h1 className={styles.title}>プロフィール情報入力</h1>
                 <p className={styles.subtitle}>
-                  {accountType === "general"
-                    ? "あなたについて教えてください。これらの情報はマッチングの質を高めるために使用されます。"
-                    : "議員活動を伝えるための詳細情報を入力してください"}
+                  店舗の基本情報を設定してください。
                 </p>
               </div>
 
-              {/* タブ切り替えセレクター */}
-              <div className={styles.tabContainer}>
-                <button
-                  type="button"
-                  className={`${styles.tabButton} ${accountType === "general" ? styles.tabButtonActive : ""}`}
-                  onClick={() => setAccountType("general")}
-                >
-                  一般市民として登録
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.tabButton} ${accountType === "politician" ? styles.tabButtonActive : ""} ${isSocialUser ? styles.tabButtonDisabled : ""}`}
-                  onClick={() => {
-                    if (!isSocialUser) {
-                      setAccountType("politician");
-                    }
-                  }}
-                  disabled={isSocialUser}
-                  title={isSocialUser ? "Google/Appleアカウントで作成された場合は議員として登録できません。" : ""}
-                >
-                  議員として登録
-                </button>
-              </div>
-              {isSocialUser && (
-                <p className={styles.socialHint}>
-                  ※Google/Appleアカウントで作成された場合は、議員として登録できません。
-                </p>
-              )}
-
-              {/* プロフィール画像アップローダー */}
+              {/* 店舗画像アップローダー */}
               <div className={styles.avatarUploadContainer}>
                 <div 
                   className={styles.avatarWrapper} 
@@ -643,7 +525,7 @@ export default function SignupDetailsPage() {
                     {avatarPreview ? (
                       <img 
                         src={avatarPreview} 
-                        alt="プロフィール画像" 
+                        alt="店舗画像" 
                         className={styles.avatarImage} 
                         style={getCroppedImgStyle(savedCropPosition, 90)}
                       />
@@ -664,14 +546,13 @@ export default function SignupDetailsPage() {
                   onClick={handleAvatarClick}
                   style={{ cursor: isImageAlreadySet ? "default" : "pointer" }}
                 >
-                  プロフィール画像（任意）
+                  画像を選択
                 </span>
-                <p className={styles.avatarSubtext} style={{ whiteSpace: "pre-line" }}>
-                  {isImageAlreadySet 
-                    ? "画像は変更できません" 
-                    : accountType === "general"
-                      ? "マッチング率が向上します"
-                      : "マッチング率が向上します\nPNG, JPG, HEIC、最大4MB"}
+                <p className={styles.avatarSubtext}>
+                  {isImageAlreadySet ? "画像は変更できません" : "店舗の雰囲気が伝わります"}
+                </p>
+                <p className={styles.avatarSubtext} style={{ fontSize: "9px", color: "#a0aec0" }}>
+                  PNG, JPG, HEIC、最大4MB
                 </p>
                 <input
                   type="file"
@@ -691,266 +572,106 @@ export default function SignupDetailsPage() {
 
               <form onSubmit={handleSubmit} className={styles.form}>
                 
-                {/* 姓・名 入力 */}
-                <div className={styles.gridRow}>
-                  <div className={styles.inputGroup}>
-                    <div className={styles.labelArea}>
-                      <label htmlFor="lastName" className={styles.label}>
-                        姓 <span className={styles.requiredBadge}>必須</span>
-                      </label>
-                    </div>
-                    <div className={styles.inputWrapper}>
-                      <input
-                        id="lastName"
-                        type="text"
-                        value={formData.lastName}
-                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                        placeholder="山田"
-                        className={styles.input}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className={styles.inputGroup}>
-                    <div className={styles.labelArea}>
-                      <label htmlFor="firstName" className={styles.label}>
-                        名 <span className={styles.requiredBadge}>必須</span>
-                      </label>
-                    </div>
-                    <div className={styles.inputWrapper}>
-                      <input
-                        id="firstName"
-                        type="text"
-                        value={formData.firstName}
-                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                        placeholder="太郎"
-                        className={styles.input}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* セイ・メイ 入力 */}
-                <div className={styles.gridRow}>
-                  <div className={styles.inputGroup}>
-                    <div className={styles.labelArea}>
-                      <label htmlFor="lastNameKana" className={styles.label}>
-                        セイ <span className={styles.requiredBadge}>必須</span>
-                      </label>
-                    </div>
-                    <div className={styles.inputWrapper}>
-                      <input
-                        id="lastNameKana"
-                        type="text"
-                        value={formData.lastNameKana}
-                        onChange={(e) => setFormData({ ...formData, lastNameKana: e.target.value })}
-                        placeholder="ヤマダ"
-                        className={styles.input}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className={styles.inputGroup}>
-                    <div className={styles.labelArea}>
-                      <label htmlFor="firstNameKana" className={styles.label}>
-                        メイ <span className={styles.requiredBadge}>必須</span>
-                      </label>
-                    </div>
-                    <div className={styles.inputWrapper}>
-                      <input
-                        id="firstNameKana"
-                        type="text"
-                        value={formData.firstNameKana}
-                        onChange={(e) => setFormData({ ...formData, firstNameKana: e.target.value })}
-                        placeholder="タロウ"
-                        className={styles.input}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* メールアドレス（変更不可・鍵マーク付き） */}
+                {/* 実店舗名 */}
                 <div className={styles.inputGroup}>
                   <div className={styles.labelArea}>
-                    <label htmlFor="email" className={styles.label}>
-                      メールアドレス
+                    <label htmlFor="shopName" className={styles.label}>
+                      実店舗名 <span className={styles.requiredBadge}>必須</span>
                     </label>
+                    {isShopNameValid && (
+                      <FontAwesomeIcon icon={faCircleCheck} className={styles.validationCheck} />
+                    )}
                   </div>
                   <div className={styles.inputWrapper}>
                     <input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      readOnly
-                      disabled
-                      className={`${styles.input} ${styles.lockedInput}`}
+                      id="shopName"
+                      type="text"
+                      value={formData.shopName}
+                      onChange={(e) => setFormData({ ...formData, shopName: e.target.value.slice(0, 50) })}
+                      placeholder="例：カフェ・マチアブ 渋谷店"
+                      className={styles.input}
+                      required
                     />
-                    <FontAwesomeIcon icon={faLock} className={styles.lockIcon} />
                   </div>
-                  <p className={styles.hint}>メールアドレスは変更できません。</p>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
+                    <p className={styles.hint}></p>
+                    <p style={{ fontSize: "11px", color: "#7b8ab8", margin: 0 }}>
+                      {formData.shopName.length}/50
+                    </p>
+                  </div>
                 </div>
 
-                {accountType === "general" ? (
-                  <>
-                    {/* ニックネーム */}
-                    <div className={styles.inputGroup}>
-                      <div className={styles.labelArea}>
-                        <label htmlFor="nickname" className={styles.label}>
-                          ニックネーム <span className={styles.requiredBadge}>必須</span>
-                        </label>
-                        {isNicknameValid && (
-                          <FontAwesomeIcon icon={faCircleCheck} className={styles.validationCheck} />
-                        )}
-                      </div>
-                      <div className={styles.inputWrapper}>
-                        <input
-                          id="nickname"
-                          type="text"
-                          value={formData.nickname}
-                          onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
-                          placeholder="タロウ"
-                          className={styles.input}
-                          required
-                        />
-                      </div>
-                      <p className={styles.hint}>公開される名前です。後で変更可能です。</p>
-                    </div>
+                {/* 店舗紹介 */}
+                <div className={styles.inputGroup}>
+                  <div className={styles.labelArea}>
+                    <label htmlFor="shopIntroduction" className={styles.label}>
+                      店舗紹介 <span className={styles.requiredBadge}>必須</span>
+                    </label>
+                    {isShopIntroductionValid && (
+                      <FontAwesomeIcon icon={faCircleCheck} className={styles.validationCheck} />
+                    )}
+                  </div>
+                  <div className={styles.inputWrapper}>
+                    <textarea
+                      id="shopIntroduction"
+                      value={formData.shopIntroduction}
+                      onChange={(e) => setFormData({ ...formData, shopIntroduction: e.target.value.slice(0, 2000) })}
+                      placeholder="お店のこだわりや特徴、提供している体験について50文字以上で詳しく記入してください。"
+                      className={styles.input}
+                      style={{ minHeight: "150px", resize: "none", lineHeight: "1.6" }}
+                      required
+                    />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
+                    {formData.shopIntroduction.length > 0 && formData.shopIntroduction.length < 50 ? (
+                      <p style={{ fontSize: "11px", color: "#ef4444", margin: 0, fontWeight: "bold" }}>
+                        ※最低50文字必要です
+                      </p>
+                    ) : (
+                      <p className={styles.hint}></p>
+                    )}
+                    <p style={{ fontSize: "11px", color: "#7b8ab8", margin: 0 }}>
+                      {formData.shopIntroduction.length}/2000
+                    </p>
+                  </div>
+                </div>
 
-                    {/* 生年月日 */}
-                    <div className={styles.inputGroup}>
-                      <div className={styles.labelArea}>
-                        <label className={styles.label}>
-                          生年月日 <span className={styles.requiredBadge}>必須</span>
-                        </label>
-                        {isBirthdateValid && (
-                          <FontAwesomeIcon icon={faCircleCheck} className={styles.validationCheck} />
-                        )}
-                      </div>
-                      <div className={styles.gridRow} style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-                        <div className={styles.inputWrapper}>
-                          <select
-                            value={formData.birthYear}
-                            onChange={(e) => setFormData({ ...formData, birthYear: e.target.value })}
-                            className={`${styles.input} ${styles.selectInput}`}
-                            aria-label="年"
-                          >
-                            {years.map((y) => (
-                              <option key={y} value={y}>{y}年</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className={styles.inputWrapper}>
-                          <select
-                            value={formData.birthMonth}
-                            onChange={(e) => setFormData({ ...formData, birthMonth: e.target.value })}
-                            className={`${styles.input} ${styles.selectInput}`}
-                            aria-label="月"
-                          >
-                            {months.map((m) => (
-                              <option key={m} value={m}>{m}月</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className={styles.inputWrapper}>
-                          <select
-                            value={formData.birthDay}
-                            onChange={(e) => setFormData({ ...formData, birthDay: e.target.value })}
-                            className={`${styles.input} ${styles.selectInput}`}
-                            aria-label="日"
-                          >
-                            {days.map((d) => (
-                              <option key={d} value={d}>{d}日</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <p className={styles.hint}>※生年月日は後で変更できません。</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* 政党 */}
-                    <div className={styles.inputGroup}>
-                      <div className={styles.labelArea}>
-                        <label htmlFor="politicalParty" className={styles.label}>
-                          政党 <span className={styles.requiredBadge}>必須</span>
-                        </label>
-                        {isPoliticalPartyValid && (
-                          <FontAwesomeIcon icon={faCircleCheck} className={styles.validationCheck} />
-                        )}
-                      </div>
-                      <div className={styles.inputWrapper}>
-                        <input
-                          id="politicalParty"
-                          type="text"
-                          value={formData.politicalParty}
-                          onChange={(e) => setFormData({ ...formData, politicalParty: e.target.value.slice(0, 50) })}
-                          placeholder="例：未来創造党"
-                          className={styles.input}
-                          required
-                        />
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
-                        <p className={styles.hint}></p>
-                        <p style={{ fontSize: "11px", color: "#7b8ab8", margin: 0 }}>
-                          {formData.politicalParty.length}/50
-                        </p>
-                      </div>
-                    </div>
+                {/* 店舗電話番号 */}
+                <div className={styles.inputGroup}>
+                  <div className={styles.labelArea}>
+                    <label htmlFor="shopPhoneNumber" className={styles.label}>
+                      店舗電話番号 <span className={styles.requiredBadge}>必須</span>
+                    </label>
+                    {isShopPhoneNumberValid && (
+                      <FontAwesomeIcon icon={faCircleCheck} className={styles.validationCheck} />
+                    )}
+                  </div>
+                  <div className={styles.inputWrapper}>
+                    <input
+                      id="shopPhoneNumber"
+                      type="text"
+                      value={formData.shopPhoneNumber}
+                      onChange={(e) => setFormData({ ...formData, shopPhoneNumber: e.target.value.replace(/-/g, "").slice(0, 15) })}
+                      placeholder="例：0312345678"
+                      className={styles.input}
+                      required
+                    />
+                  </div>
+                  <p className={styles.hint}>ハイフンなしの半角数字（15桁以内）</p>
+                </div>
 
-                    {/* 公約・活動方針 */}
-                    <div className={styles.inputGroup}>
-                      <div className={styles.labelArea}>
-                        <label htmlFor="pledge" className={styles.label}>
-                          公約・活動方針 <span className={styles.requiredBadge}>必須</span>
-                        </label>
-                        {isPledgeValid && (
-                          <FontAwesomeIcon icon={faCircleCheck} className={styles.validationCheck} />
-                        )}
-                      </div>
-                      <div className={styles.inputWrapper}>
-                        <textarea
-                          id="pledge"
-                          value={formData.pledge}
-                          onChange={(e) => setFormData({ ...formData, pledge: e.target.value.slice(0, 2000) })}
-                          placeholder="掲げる公約や具体的な活動方針を50文字以上で入力してください。"
-                          className={styles.input}
-                          style={{ minHeight: "150px", resize: "none", lineHeight: "1.6" }}
-                          required
-                        />
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
-                        {formData.pledge.length > 0 && formData.pledge.length < 50 ? (
-                          <p style={{ fontSize: "11px", color: "#ef4444", margin: 0, fontWeight: "bold" }}>
-                            ※最低50文字必要です
-                          </p>
-                        ) : (
-                          <p className={styles.hint}></p>
-                        )}
-                        <p style={{ fontSize: "11px", color: "#7b8ab8", margin: 0 }}>
-                          {formData.pledge.length}/2000
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* 住所・活動地域 */}
+                {/* 所在地 */}
                 <div className={styles.inputGroup}>
                   <div className={styles.labelArea}>
                     <label htmlFor="postalCode" className={styles.label}>
-                      {accountType === "general" ? "現住所" : "活動地域"} <span className={styles.requiredBadge}>必須</span>
+                      所在地 <span className={styles.requiredBadge}>必須</span>
                     </label>
                     {isAddressValid && (
                       <FontAwesomeIcon icon={faCircleCheck} className={styles.validationCheck} />
                     )}
                   </div>
                   
-                  {/* 郵便番号入力 & 検索ボタン */}
+                  {/* 郵便番号 */}
                   <div className={styles.postalSearchGroup}>
                     <div className={styles.inputWrapper}>
                       <input
@@ -958,7 +679,7 @@ export default function SignupDetailsPage() {
                         type="text"
                         value={formData.postalCode}
                         onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                        placeholder="150-0002"
+                        placeholder="1500002"
                         className={styles.input}
                         required
                       />
@@ -968,7 +689,7 @@ export default function SignupDetailsPage() {
                       onClick={handleZipSearch}
                       className={styles.searchButton}
                     >
-                      検索
+                      住所検索
                     </button>
                   </div>
 
@@ -994,31 +715,101 @@ export default function SignupDetailsPage() {
                       type="text"
                       value={formData.addressDetail}
                       onChange={(e) => setFormData({ ...formData, addressDetail: e.target.value })}
-                      placeholder="渋谷区渋谷2-24-12"
+                      placeholder="例：渋谷区神南1-1-1"
                       className={styles.input}
                       required
                       aria-label="市区町村・番地"
                     />
                   </div>
 
-                  {/* 建物名・部屋番号（任意） */}
+                  {/* 建物名・部屋番号 */}
                   <div className={styles.inputWrapper} style={{ marginTop: "8px" }}>
                     <input
                       type="text"
                       value={formData.buildingName}
                       onChange={(e) => setFormData({ ...formData, buildingName: e.target.value })}
-                      placeholder="建物名・部屋番号（任意）"
+                      placeholder="例：マチアプビル 201"
                       className={styles.input}
                       aria-label="建物名・部屋番号"
                     />
                   </div>
                 </div>
 
+                {/* アカウント管理 */}
+                <h2 className={styles.sectionHeader}>アカウント管理</h2>
+
+                {/* ログインID */}
+                <div className={styles.inputGroup}>
+                  <div className={styles.labelArea}>
+                    <label htmlFor="email" className={styles.label}>
+                      ログインID（メールアドレス）
+                    </label>
+                  </div>
+                  <div className={styles.inputWrapper}>
+                    <input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      readOnly
+                      disabled
+                      className={`${styles.input} ${styles.lockedInput}`}
+                    />
+                    <FontAwesomeIcon icon={faLock} className={styles.lockIcon} />
+                  </div>
+                  <p className={styles.hint}>IDは登録後に変更することはできません。</p>
+                </div>
+
+                {/* パスワード確認・変更 */}
+                <div className={styles.inputGroup}>
+                  <div className={styles.labelArea}>
+                    <label htmlFor="newPassword" className={styles.label}>
+                      パスワードの確認・変更
+                    </label>
+                    {newPassword !== "" && isPasswordValid && (
+                      <FontAwesomeIcon icon={faCircleCheck} className={styles.validationCheck} />
+                    )}
+                  </div>
+                  <div className={styles.inputWrapper}>
+                    <input
+                      id="newPassword"
+                      type={showPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className={`${styles.input} ${styles.passwordInput}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className={styles.eyeButton}
+                      style={{
+                        position: "absolute",
+                        right: "16px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        color: "#7b8ab8",
+                        cursor: "pointer"
+                      }}
+                      aria-label={showPassword ? "パスワードを非表示にする" : "パスワードを表示する"}
+                    >
+                      <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                    </button>
+                  </div>
+                  <p className={styles.hint}>※パスワードを変更したい場合のみ入力してください。</p>
+                  {newPassword !== "" && !isPasswordValid && (
+                    <p style={{ fontSize: "11px", color: "#ef4444", margin: "4px 0 0 0", fontWeight: "bold" }}>
+                      12文字以上64文字以内、英大文字・英小文字・数字の混在必須。
+                    </p>
+                  )}
+                </div>
+
                 {/* 個人情報保護に関する文言 */}
                 <div className={styles.infoBox}>
                   <FontAwesomeIcon icon={faShieldHalved} className={styles.infoIcon} />
                   <p className={styles.infoText}>
-                    入力された住所情報は本人確認および規約に基づくマッチング精度の向上のためにのみ使用され、他のユーザーに公開されることはありません。
+                    入力された所在地情報は本人確認および規約に基づくマッチング精度の向上のためにのみ使用され、他の一般ユーザーに無断で公開されることはありません。
                   </p>
                 </div>
 
@@ -1050,7 +841,7 @@ export default function SignupDetailsPage() {
                 {avatarPreview ? (
                   <img 
                     src={avatarPreview} 
-                    alt="プロフィール画像" 
+                    alt="店舗画像" 
                     className={styles.avatarImage}
                     style={getCroppedImgStyle(savedCropPosition, 80)}
                   />
@@ -1060,7 +851,7 @@ export default function SignupDetailsPage() {
               </div>
               <h1 className={styles.title}>アカウント登録が完了しました！</h1>
               <p className={styles.subtitle} style={{ marginBottom: "32px" }}>
-                マチアプへようこそ。プロフィールの詳細登録がすべて完了し、アカウントの有効化に成功しました。
+                マチアプへようこそ。店舗情報の詳細登録がすべて完了し、アカウントの有効化に成功しました。
               </p>
 
               <button 
@@ -1081,7 +872,7 @@ export default function SignupDetailsPage() {
       {isCropperOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h2 className={styles.modalTitle}>プロフィールの切り抜き</h2>
+            <h2 className={styles.modalTitle}>画像の切り抜き</h2>
             
             <div 
               className={styles.cropperViewport}
@@ -1091,7 +882,7 @@ export default function SignupDetailsPage() {
               onMouseLeave={handleMouseUp}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
+              onTouchEnd={handleMouseUp}
             >
               <img
                 src={cropSrc}
