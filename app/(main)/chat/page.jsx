@@ -6,8 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db, storage } from "@/src/firebase/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { onSnapshot, collection, query, orderBy, where } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { onSnapshot, collection, query, orderBy, where, doc, updateDoc, getDocs } from "firebase/firestore";
 import { getUserProfile } from "@/src/firebase/userDb";
 import {
   sendChatMessage,
@@ -42,6 +42,20 @@ const formatDate = (date) => {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 };
 
+const isImageExpired = (msg) => {
+  if (msg.image_deleted) return true;
+  if (!msg.image_url) return false;
+  // 共有の絵文字画像は期限切れにしない
+  if (msg.image_url.includes("shared_emojis")) return false;
+  
+  const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const createdTime = msg.created_at instanceof Date 
+    ? msg.created_at.getTime() 
+    : msg.created_at?.toDate?.().getTime() || new Date(msg.created_at).getTime();
+    
+  return (Date.now() - createdTime) > ONE_WEEK_MS;
+};
+
 export default function ChatPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,6 +73,9 @@ export default function ChatPage() {
 
   // 取得した絵文字のURLキャッシュ
   const [emojiUrls, setEmojiUrls] = useState({});
+
+  // 画像拡大表示用のURLステート
+  const [zoomImageUrl, setZoomImageUrl] = useState(null);
 
   // スクロール用Ref
   const messageLogRef = useRef(null);
@@ -149,6 +166,21 @@ export default function ChatPage() {
             }
           }
 
+          // 未読メッセージ件数の取得
+          let unreadCount = 0;
+          try {
+            const messagesCollectionRef = collection(db, "chat_rooms", room.id, "messages");
+            const unreadQuery = query(
+              messagesCollectionRef,
+              where("sender_id", "==", partnerUid),
+              where("read", "==", false)
+            );
+            const unreadSnap = await getDocs(unreadQuery);
+            unreadCount = unreadSnap.size;
+          } catch (unreadErr) {
+            console.error("Failed to fetch unread count:", unreadErr);
+          }
+
           return {
             id: room.id,
             partnerUid,
@@ -156,7 +188,7 @@ export default function ChatPage() {
             avatar: partnerProfile?.profileImage || "/user_Icon/user_icon1.jpg",
             online: false,
             lastActive: lastActiveStr,
-            unreadCount: 0,
+            unreadCount: room.id === selectedRoomId ? 0 : unreadCount,
             lastMessageText: lastMsgText
           };
         })
@@ -173,7 +205,7 @@ export default function ChatPage() {
     });
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, selectedRoomId]);
 
   // --- 3. 選択されたチャットルームのメッセージリアルタイム監視 ---
   useEffect(() => {
@@ -186,6 +218,44 @@ export default function ChatPage() {
     const q = query(messagesCollectionRef, orderBy("created_at", "asc"));
 
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+      // 相手からの未読メッセージがあればFirestore上で既読(read: true)にする
+      const batchUpdates = [];
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.sender_id !== currentUser.uid && !data.read) {
+          const messageRef = doc(db, "chat_rooms", selectedRoomId, "messages", docSnap.id);
+          batchUpdates.push(updateDoc(messageRef, { read: true }));
+        }
+
+        // 送信から1週間経過した画像を自動消去する処理
+        if (data.image_url && !data.image_deleted && !data.image_url.includes("shared_emojis")) {
+          const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+          const createdTime = data.created_at ? data.created_at.toDate().getTime() : Date.now();
+          if (Date.now() - createdTime > ONE_WEEK_MS) {
+            (async () => {
+              try {
+                // Storageから削除
+                const fileRef = ref(storage, data.image_url);
+                await deleteObject(fileRef);
+              } catch (storageErr) {
+                // すでに消去されている場合などは警告を出して続行
+                console.warn("Storage object already deleted or failed to delete:", storageErr.message);
+              }
+              try {
+                // Firestoreを更新
+                const messageRef = doc(db, "chat_rooms", selectedRoomId, "messages", docSnap.id);
+                await updateDoc(messageRef, { image_url: null, image_deleted: true });
+              } catch (dbErr) {
+                console.error("Failed to update image_deleted status in Firestore:", dbErr);
+              }
+            })();
+          }
+        }
+      });
+      if (batchUpdates.length > 0) {
+        Promise.all(batchUpdates).catch(err => console.error("Failed to mark messages as read:", err));
+      }
+
       const decryptedPromises = querySnapshot.docs.map(async (docSnap) => {
         const data = docSnap.data();
         try {
@@ -196,8 +266,9 @@ export default function ChatPage() {
             is_system: data.is_system || data.sender_id === "system",
             content_text: plainText,
             image_url: data.image_url || null,
+            image_deleted: data.image_deleted || false,
             created_at: data.created_at ? data.created_at.toDate() : new Date(),
-            isRead: true
+            isRead: data.read || false
           };
         } catch (err) {
           console.error("Failed to decrypt message:", err);
@@ -207,8 +278,9 @@ export default function ChatPage() {
             is_system: data.is_system || data.sender_id === "system",
             content_text: "🔒 [復号化に失敗した暗号メッセージ]",
             image_url: data.image_url || null,
+            image_deleted: data.image_deleted || false,
             created_at: data.created_at ? data.created_at.toDate() : new Date(),
-            isRead: true
+            isRead: data.read || false
           };
         }
       });
@@ -469,17 +541,49 @@ export default function ChatPage() {
                             isMe ? styles.outgoingBubble : styles.incomingBubble
                           }`}
                         >
-                          {msg.image_url && (
-                            <div 
-                              className={styles.messageImageWrapper} 
-                              style={{ marginBottom: msg.content_text ? "8px" : "0" }}
-                            >
-                              <img
-                                src={msg.image_url}
-                                alt="添付画像"
-                                className={styles.messageImage}
-                              />
-                            </div>
+                          {(msg.image_url || msg.image_deleted) && (
+                            isImageExpired(msg) || msg.image_deleted ? (
+                              <div 
+                                className={styles.expiredImagePlaceholder}
+                                style={{ marginBottom: msg.content_text ? "8px" : "0" }}
+                              >
+                                <span>⚠️ 送信から1週間経過したため画像は非表示になりました</span>
+                              </div>
+                            ) : (
+                              msg.image_url && msg.image_url.includes("shared_emojis") ? (
+                                <div 
+                                  className={styles.emojiImageWrapper}
+                                  style={{ marginBottom: msg.content_text ? "8px" : "0" }}
+                                >
+                                  <img
+                                    src={msg.image_url}
+                                    alt="絵文字"
+                                    className={`${styles.emojiImage} ${styles.noSelectImage}`}
+                                    onContextMenu={(e) => e.preventDefault()}
+                                    onDragStart={(e) => e.preventDefault()}
+                                    style={{ pointerEvents: "none" }}
+                                  />
+                                </div>
+                              ) : (
+                                <div 
+                                  className={styles.messageImageWrapper} 
+                                  style={{ 
+                                    marginBottom: msg.content_text ? "8px" : "0",
+                                    cursor: "zoom-in"
+                                  }}
+                                  onClick={() => setZoomImageUrl(msg.image_url)}
+                                >
+                                  <img
+                                    src={msg.image_url}
+                                    alt="添付画像"
+                                    className={`${styles.messageImage} ${styles.noSelectImage}`}
+                                    onContextMenu={(e) => e.preventDefault()}
+                                    onDragStart={(e) => e.preventDefault()}
+                                    style={{ pointerEvents: "none" }}
+                                  />
+                                </div>
+                              )
+                            )
                           )}
                           {msg.content_text && <p style={{ margin: 0 }}>{msg.content_text}</p>}
                         </div>
@@ -580,6 +684,25 @@ export default function ChatPage() {
         <div className={styles.noChatSelected}>
           <h3 className={styles.noChatTitle}>チャットを選択してください</h3>
           <p className={styles.noChatText}>左側のメッセージリストからスレッドを選択して会話を開始できます。</p>
+        </div>
+      )}
+      {/* 画像拡大モーダル */}
+      {zoomImageUrl && (
+        <div 
+          className={styles.modalOverlay}
+          onClick={() => setZoomImageUrl(null)}
+        >
+          <button className={styles.modalCloseButton}>&times;</button>
+          <div className={styles.modalContent}>
+            <img
+              src={zoomImageUrl}
+              alt="拡大画像"
+              className={`${styles.modalImage} ${styles.noSelectImage}`}
+              onContextMenu={(e) => e.preventDefault()}
+              onDragStart={(e) => e.preventDefault()}
+              style={{ pointerEvents: "none" }}
+            />
+          </div>
         </div>
       )}
     </div>

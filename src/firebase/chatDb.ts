@@ -57,6 +57,10 @@ export interface ChatMessage {
   is_system?: boolean;
   /** 添付画像のURL */
   image_url?: string | null;
+  /** 既読フラグ */
+  read?: boolean;
+  /** 画像が消去されたかどうかのフラグ */
+  image_deleted?: boolean;
 }
 
 // 復号化された平文メッセージのインターフェース
@@ -69,6 +73,10 @@ export interface DecryptedChatMessage {
   is_system?: boolean;
   /** 添付画像のURL */
   image_url?: string | null;
+  /** 既読フラグ */
+  read?: boolean;
+  /** 画像が消去されたかどうかのフラグ */
+  image_deleted?: boolean;
 }
 
 // --- Base64 / ArrayBuffer 変換ヘルパー (ブラウザ・Node.js両対応) ---
@@ -247,7 +255,8 @@ export async function sendChatMessage(
       encrypted_content,
       iv,
       created_at: Timestamp.now(),
-      image_url: imageUrl || null
+      image_url: imageUrl || null,
+      read: false
     });
 
     // 親のチャットルームの最終メッセージ情報を更新
@@ -335,6 +344,8 @@ export async function getDecryptedMessages(roomId: string): Promise<DecryptedCha
           recipient_id: data.recipient_id,
           content_text: plainText,
           image_url: data.image_url || null,
+          read: data.read || false,
+          image_deleted: data.image_deleted || false,
           created_at: data.created_at,
           is_system: data.is_system || false
         });
@@ -347,6 +358,8 @@ export async function getDecryptedMessages(roomId: string): Promise<DecryptedCha
           recipient_id: data.recipient_id,
           content_text: "🔒 [復号化に失敗した暗号メッセージ]",
           image_url: data.image_url || null,
+          read: data.read || false,
+          image_deleted: data.image_deleted || false,
           created_at: data.created_at,
           is_system: data.is_system || false
         });
