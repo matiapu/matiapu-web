@@ -5,7 +5,8 @@ import styles from "./Chat.module.css";
 import Image from "next/image";
 import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth, db } from "@/src/firebase/firebase";
+import { auth, db, storage } from "@/src/firebase/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { onSnapshot, collection, query, orderBy, where } from "firebase/firestore";
 import { getUserProfile } from "@/src/firebase/userDb";
 import {
@@ -15,14 +16,18 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPaperPlane,
-  faPlus,
   faImage,
   faSmile,
   faInfoCircle,
   faLock,
-  faEdit,
   faSpinner
 } from "@fortawesome/free-solid-svg-icons";
+
+const EMOJIS = [
+  "😊", "😂", "🤣", "🥰", "😍", "😘", "😜", "🤔", "🤫", "🙄",
+  "😭", "🥺", "😱", "😠", "🤯", "👍", "👎", "👏", "🙌", "🤝",
+  "❤️", "💔", "🎉", "🔥", "✨", "🌟", "💬", "🔊", "📅", "📍"
+];
 
 // 日本語のフォーマットヘルパー
 const formatTime = (date) => {
@@ -47,8 +52,29 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
   
+  // 絵文字ピッカーの表示状態
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // 取得した絵文字のURLキャッシュ
+  const [emojiUrls, setEmojiUrls] = useState({});
+
   // スクロール用Ref
   const messageLogRef = useRef(null);
+
+  // 絵文字ピッカーの外側をクリックしたときに閉じる
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // --- 1. 認証状態の監視 ---
   useEffect(() => {
@@ -169,6 +195,7 @@ export default function ChatPage() {
             sender_id: data.sender_id === currentUser.uid ? "me" : "partner",
             is_system: data.is_system || data.sender_id === "system",
             content_text: plainText,
+            image_url: data.image_url || null,
             created_at: data.created_at ? data.created_at.toDate() : new Date(),
             isRead: true
           };
@@ -179,6 +206,7 @@ export default function ChatPage() {
             sender_id: data.sender_id === currentUser.uid ? "me" : "partner",
             is_system: data.is_system || data.sender_id === "system",
             content_text: "🔒 [復号化に失敗した暗号メッセージ]",
+            image_url: data.image_url || null,
             created_at: data.created_at ? data.created_at.toDate() : new Date(),
             isRead: true
           };
@@ -224,6 +252,71 @@ export default function ChatPage() {
     }
   };
 
+  const handleSendEmoji = async (emoji) => {
+    setShowEmojiPicker(false);
+    if (!selectedRoomId || !currentUser) return;
+
+    try {
+      const activeRoom = rooms.find((r) => r.id === selectedRoomId);
+      if (!activeRoom) return;
+
+      let imageUrl = emojiUrls[emoji];
+
+      if (!imageUrl) {
+        // まだキャッシュにない場合はFirebase Storageから取得
+        const storageRef = ref(storage, `shared_emojis/${emoji}.svg`);
+        imageUrl = await getDownloadURL(storageRef);
+        
+        // キャッシュを更新
+        setEmojiUrls(prev => ({
+          ...prev,
+          [emoji]: imageUrl
+        }));
+      }
+
+      // メッセージを送信
+      await sendChatMessage(
+        selectedRoomId,
+        currentUser.uid,
+        activeRoom.partnerUid,
+        "",
+        imageUrl
+      );
+    } catch (err) {
+      console.error("Error sending Firebase emoji:", err);
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedRoomId || !currentUser) return;
+    
+    // reset file input
+    e.target.value = "";
+
+    try {
+      const activeRoom = rooms.find((r) => r.id === selectedRoomId);
+      if (!activeRoom) return;
+
+      const fileName = `${Date.now()}_${file.name}`;
+      const storageRef = ref(storage, `chat_rooms/${selectedRoomId}/images/${fileName}`);
+      const uploadResult = await uploadBytes(storageRef, file, {
+        contentType: file.type || "image/jpeg",
+      });
+      const imageUrl = await getDownloadURL(uploadResult.ref);
+
+      await sendChatMessage(
+        selectedRoomId,
+        currentUser.uid,
+        activeRoom.partnerUid,
+        "",
+        imageUrl
+      );
+    } catch (err) {
+      console.error("Failed to upload image:", err);
+    }
+  };
+
   // 入力フォームでのEnterキー送信対応（Shift+Enterは改行）
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -263,9 +356,6 @@ export default function ChatPage() {
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <h2 className={styles.sidebarTitle}>メッセージ</h2>
-          <button className={styles.composeButton} title="新規メッセージ">
-            <FontAwesomeIcon icon={faEdit} size="lg" />
-          </button>
         </div>
         <div className={styles.threadList}>
           {rooms.map((room) => (
@@ -379,7 +469,19 @@ export default function ChatPage() {
                             isMe ? styles.outgoingBubble : styles.incomingBubble
                           }`}
                         >
-                          {msg.content_text}
+                          {msg.image_url && (
+                            <div 
+                              className={styles.messageImageWrapper} 
+                              style={{ marginBottom: msg.content_text ? "8px" : "0" }}
+                            >
+                              <img
+                                src={msg.image_url}
+                                alt="添付画像"
+                                className={styles.messageImage}
+                              />
+                            </div>
+                          )}
+                          {msg.content_text && <p style={{ margin: 0 }}>{msg.content_text}</p>}
                         </div>
                       </div>
                       <div
@@ -402,12 +504,21 @@ export default function ChatPage() {
           {/* メッセージ入力・フォーム部分 */}
           <div className={styles.inputAreaContainer}>
             <form className={styles.inputBar} onSubmit={handleSend}>
-              <button type="button" className={styles.iconBtn} title="追加機能">
-                <FontAwesomeIcon icon={faPlus} />
-              </button>
-              <button type="button" className={styles.iconBtn} title="画像送信">
+              <button 
+                type="button" 
+                className={styles.iconBtn} 
+                title="画像送信"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <FontAwesomeIcon icon={faImage} />
               </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
               
               <input
                 type="text"
@@ -418,9 +529,32 @@ export default function ChatPage() {
                 onKeyDown={handleKeyDown}
               />
               
-              <button type="button" className={styles.iconBtn} title="絵文字">
-                <FontAwesomeIcon icon={faSmile} />
-              </button>
+              <div style={{ position: "relative" }} ref={emojiPickerRef}>
+                <button 
+                  type="button" 
+                  className={styles.iconBtn} 
+                  title="絵文字"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                >
+                  <FontAwesomeIcon icon={faSmile} />
+                </button>
+                {showEmojiPicker && (
+                  <div className={styles.emojiPickerPopup}>
+                    <div className={styles.emojiPickerGrid}>
+                      {EMOJIS.map((emoji, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          className={styles.emojiItem}
+                          onClick={() => handleSendEmoji(emoji)}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               <button type="submit" className={styles.sendBtn} title="送信">
                 <FontAwesomeIcon icon={faPaperPlane} size="sm" />
               </button>
