@@ -358,8 +358,7 @@ export async function getChatRoomsForUser(userId: string): Promise<ChatRoom[]> {
     const roomsCollectionRef = collection(db, "chat_rooms");
     const q = query(
       roomsCollectionRef,
-      where("user_ids", "array-contains", userId),
-      orderBy("last_message_at", "desc")
+      where("user_ids", "array-contains", userId)
     );
     
     const querySnapshot = await getDocs(q);
@@ -369,6 +368,13 @@ export async function getChatRoomsForUser(userId: string): Promise<ChatRoom[]> {
         id: docSnap.id,
         ...docSnap.data()
       } as ChatRoom);
+    });
+
+    // インデックス作成エラーを回避するため、メモリ上で最終メッセージ日時の降順にソートします
+    rooms.sort((a, b) => {
+      const timeA = a.last_message_at?.toMillis() || 0;
+      const timeB = b.last_message_at?.toMillis() || 0;
+      return timeB - timeA;
     });
 
     return rooms;
