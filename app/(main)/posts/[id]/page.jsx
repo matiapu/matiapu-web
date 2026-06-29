@@ -12,6 +12,7 @@ import CommentSection from '@/components/CommentSection';
 import { getPosts } from '@/src/firebase/postDb';
 import { getUserProfile } from '@/src/firebase/userDb';
 import { hasLikedPost, likePost, unlikePost } from '@/src/firebase/likeDb';
+import { recordViewHistory } from '@/src/firebase/historyDb';
 import { auth } from '@/src/firebase/firebase';
 
 function Page({ params }) {
@@ -153,6 +154,18 @@ function Page({ params }) {
       }
     }
   };
+
+  // 5. 閲覧履歴の自動記録
+  useEffect(() => {
+    if (activeIndex !== -1 && posts[activeIndex]) {
+      const activePost = posts[activeIndex];
+      const uid = auth.currentUser?.uid || "user1";
+      
+      recordViewHistory(activePost.id, uid).catch(err => {
+        console.error("Error recording view history:", err);
+      });
+    }
+  }, [activeIndex, posts]);
 
   const handleNext = () => {
     if (activeIndex < posts.length - 1) {

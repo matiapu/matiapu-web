@@ -7,10 +7,12 @@ import PostImage from './PostImage';
 import styles from '@/components/profile.module.css';
 import { auth } from '@/src/firebase/firebase';
 import { getUserProfile } from '@/src/firebase/userDb';
-import { getPosts } from '@/src/firebase/postDb';
+import { getPosts, getPost } from '@/src/firebase/postDb';
+import { getLikedPostIdsForUser } from '@/src/firebase/likeDb';
+import { getViewHistoryForUser } from '@/src/firebase/historyDb';
 import { onAuthStateChanged } from 'firebase/auth';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner, faHeart, faImage } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner, faHeart, faImage, faHistory } from '@fortawesome/free-solid-svg-icons';
 import { POSTS } from '@/data/posts';
 
 function Profile() {
@@ -18,36 +20,119 @@ function Profile() {
   const [user, setUser] = useState(null);
   const [profileData, setProfileData] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
+  const [likedPosts, setLikedPosts] = useState([]);
+  const [historyPosts, setHistoryPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("posts"); // "posts" | "likes"
+  const [activeTab, setActiveTab] = useState("posts"); // "posts" | "likes" | "history"
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         try {
+          // Helper function to format other users' posts
+          const formatPostData = async (p, fallbackIdx) => {
+            if (!p) return null;
+            let authorData = null;
+            try {
+              if (p.author_uid) {
+                authorData = await getUserProfile(p.author_uid);
+              }
+            } catch (e) {
+              console.error("Error fetching post author profile:", e);
+            }
+            
+            return {
+              id: p.id || `post_${fallbackIdx}`,
+              name: authorData?.displayName || authorData?.nickname || "ユーザー",
+              address: authorData?.address ? `${authorData.address.prefecture}${authorData.address.addressDetail}` : "",
+              userIcon: authorData?.profileImage || "/user_Icon/user_icon1.jpg",
+              title: p.title || p.content_text.substring(0, 15) + (p.content_text.length > 15 ? "..." : ""),
+              tags: p.tags || "一般",
+              image: p.image_url || "/post_image/post_image1.jpg",
+              createAt: p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString('ja-JP') : new Date().toLocaleDateString('ja-JP'),
+              content: p.content_text || "",
+              likes: p.likes || "0",
+            };
+          };
+
           // Fetch Firestore user profile
-          const data = await getUserProfile(currentUser.uid);
-          setProfileData(data);
+          let data = null;
+          try {
+            data = await getUserProfile(currentUser.uid);
+            setProfileData(data);
+          } catch (err) {
+            console.error("Error loading user profile data:", err);
+          }
 
           // Fetch user's posts
-          const posts = await getPosts({ author_uid: currentUser.uid });
-          // Map posts to match the UI format of data/posts.js
-          const formattedPosts = posts.map((p, idx) => ({
-            id: p.id || `post_${idx}`,
-            name: data?.displayName || data?.nickname || currentUser.displayName || "ユーザー",
-            address: data?.address ? `${data.address.prefecture}${data.address.addressDetail}` : "",
-            userIcon: data?.profileImage || "/user_Icon/user_icon1.jpg",
-            title: p.content_text.substring(0, 15) + (p.content_text.length > 15 ? "..." : ""),
-            tags: "一般",
-            image: p.image_url || "/post_image/post_image1.jpg",
-            createAt: p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString('ja-JP') : new Date().toLocaleDateString('ja-JP'),
-            content: p.content_text,
-            likes: "0",
-          }));
-          setUserPosts(formattedPosts);
+          try {
+            const posts = await getPosts({ author_uid: currentUser.uid });
+            // Map posts to match the UI format of data/posts.js
+            const formattedPosts = posts.map((p, idx) => ({
+              id: p.id || `post_${idx}`,
+              name: data?.displayName || data?.nickname || currentUser.displayName || "ユーザー",
+              address: data?.address ? `${data.address.prefecture}${data.address.addressDetail}` : "",
+              userIcon: data?.profileImage || "/user_Icon/user_icon1.jpg",
+              title: p.title || p.content_text.substring(0, 15) + (p.content_text.length > 15 ? "..." : ""),
+              tags: p.tags || "一般",
+              image: p.image_url || "/post_image/post_image1.jpg",
+              createAt: p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString('ja-JP') : new Date().toLocaleDateString('ja-JP'),
+              content: p.content_text,
+              likes: p.likes || "0",
+            }));
+            setUserPosts(formattedPosts);
+          } catch (err) {
+            console.error("Error loading user's own posts:", err);
+          }
+
+          // Fetch liked posts
+          try {
+            const likedPostIds = await getLikedPostIdsForUser(currentUser.uid);
+            const likedPostsFetched = await Promise.all(
+              likedPostIds.map(async (postId, idx) => {
+                try {
+                  const p = await getPost(postId);
+                  return formatPostData(p, idx);
+                } catch (e) {
+                  console.error(`Error fetching individual liked post ${postId}:`, e);
+                  return null;
+                }
+              })
+            );
+            setLikedPosts(likedPostsFetched.filter(Boolean));
+          } catch (err) {
+            console.error("Error loading liked posts:", err);
+          }
+
+          // Fetch view history
+          try {
+            const historyList = await getViewHistoryForUser(currentUser.uid);
+            const historyPostsFetched = await Promise.all(
+              historyList.map(async (h, idx) => {
+                try {
+                  const p = await getPost(h.post_id);
+                  const formatted = await formatPostData(p, idx);
+                  if (formatted) {
+                    formatted.viewedAt = h.viewed_at;
+                  }
+                  return formatted;
+                } catch (e) {
+                  console.error(`Error fetching individual history post ${h.post_id}:`, e);
+                  return null;
+                }
+              })
+            );
+            const sortedHistory = historyPostsFetched
+              .filter(Boolean)
+              .sort((a, b) => b.viewedAt.toMillis() - a.viewedAt.toMillis());
+            setHistoryPosts(sortedHistory);
+          } catch (err) {
+            console.error("Error loading view history:", err);
+          }
+
         } catch (err) {
-          console.error("Error loading user profile or posts:", err);
+          console.error("Critical error inside profile fetch workflow:", err);
         } finally {
           setLoading(false);
         }
@@ -56,6 +141,8 @@ function Profile() {
         setUser(null);
         setProfileData(null);
         setUserPosts([]);
+        setLikedPosts([]);
+        setHistoryPosts([]);
         setLoading(false);
       }
     });
@@ -185,22 +272,47 @@ function Profile() {
           onClick={() => setActiveTab("likes")}
         >
           <FontAwesomeIcon icon={faHeart} className={styles.tabIcon} />
-          <span>いいねした投稿</span>
+          <span>いいねした投稿 ({isLive ? likedPosts.length : 0})</span>
+        </button>
+        <button 
+          className={`${styles.tabBtn} ${activeTab === "history" ? styles.tabBtnActive : ""}`}
+          onClick={() => setActiveTab("history")}
+        >
+          <FontAwesomeIcon icon={faHistory} className={styles.tabIcon} />
+          <span>閲覧履歴 ({isLive ? historyPosts.length : 0})</span>
         </button>
       </div>
 
       {/* Tab Contents */}
       <div className={styles.tabContent}>
-        {activeTab === "posts" ? (
+        {activeTab === "posts" && (
           <PostImage posts={postsToShow} />
-        ) : (
-          <div className={styles.emptyLikesState}>
-            <FontAwesomeIcon icon={faHeart} className={styles.emptyLikesIcon} />
-            <p className={styles.emptyLikesText}>いいねした投稿はありません。</p>
-            <button className={styles.exploreBtn} onClick={() => router.push("/")}>
-              投稿を探しに行く
-            </button>
-          </div>
+        )}
+        {activeTab === "likes" && (
+          (isLive ? likedPosts : []).length > 0 ? (
+            <PostImage posts={likedPosts} />
+          ) : (
+            <div className={styles.emptyLikesState}>
+              <FontAwesomeIcon icon={faHeart} className={styles.emptyLikesIcon} />
+              <p className={styles.emptyLikesText}>いいねした投稿はありません。</p>
+              <button className={styles.exploreBtn} onClick={() => router.push("/")}>
+                投稿を探しに行く
+              </button>
+            </div>
+          )
+        )}
+        {activeTab === "history" && (
+          (isLive ? historyPosts : []).length > 0 ? (
+            <PostImage posts={historyPosts} />
+          ) : (
+            <div className={styles.emptyLikesState}>
+              <FontAwesomeIcon icon={faHistory} className={styles.emptyLikesIcon} />
+              <p className={styles.emptyLikesText}>閲覧履歴はありません。</p>
+              <button className={styles.exploreBtn} onClick={() => router.push("/")}>
+                投稿を見に行く
+              </button>
+            </div>
+          )
         )}
       </div>
     </div>
