@@ -44,6 +44,16 @@ export interface Post {
   status: PostStatus;
   /** 投稿日時 */
   created_at: Timestamp;
+  /** 投稿のタイトル (オプショナル) */
+  title?: string;
+  /** 投稿のタグ (災害など、オプショナル) */
+  tags?: string;
+  /** いいね数 (オプショナル) */
+  likes?: string | number;
+  /** 質問テキスト (オプショナル) */
+  questionText?: string | null;
+  /** 回答テキスト (オプショナル) */
+  answerText?: string | null;
 }
 
 /**
