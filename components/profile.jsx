@@ -158,31 +158,9 @@ function Profile() {
             )}
           </div>
 
-          {/* Bio / Pledge Card */}
-          <div className={styles.bioCard}>
-            <h3 className={styles.bioTitle}>
-              {userType === "politician" ? "公約・活動方針" : userType === "shop" ? "店舗紹介" : "自己紹介"}
-            </h3>
-            <p className={styles.bioText}>{bioContent}</p>
-          </div>
 
-          {/* Stats Summary */}
-          <div className={styles.profileStats}>
-            <div className={styles.statBox}>
-              <span className={styles.statValue}>{postsToShow.length}</span>
-              <span className={styles.statLabel}>投稿</span>
-            </div>
-            <div className={styles.statBox}>
-              <span className={styles.statValue}>
-                {postsToShow.reduce((acc, p) => acc + parseInt(p.likes || 0), 0)}
-              </span>
-              <span className={styles.statLabel}>獲得いいね</span>
-            </div>
-            <div className={styles.statBox}>
-              <span className={styles.statValue}>12</span>
-              <span className={styles.statLabel}>マッチング</span>
-            </div>
-          </div>
+
+
 
           {/* Edit Profile Action */}
           <div className={styles.actionButtons}>
