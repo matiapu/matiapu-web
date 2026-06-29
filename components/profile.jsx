@@ -42,16 +42,17 @@ function Profile() {
               console.error("Error fetching post author profile:", e);
             }
             
+            const contentText = p.content_text || "";
             return {
               id: p.id || `post_${fallbackIdx}`,
               name: authorData?.displayName || authorData?.nickname || "ユーザー",
               address: authorData?.address ? `${authorData.address.prefecture}${authorData.address.addressDetail}` : "",
               userIcon: authorData?.profileImage || "/user_Icon/user_icon1.jpg",
-              title: p.title || p.content_text.substring(0, 15) + (p.content_text.length > 15 ? "..." : ""),
+              title: p.title || contentText.substring(0, 15) + (contentText.length > 15 ? "..." : ""),
               tags: p.tags || "一般",
               image: p.image_url || "/post_image/post_image1.jpg",
               createAt: p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString('ja-JP') : new Date().toLocaleDateString('ja-JP'),
-              content: p.content_text || "",
+              content: contentText,
               likes: p.likes || "0",
             };
           };
@@ -89,18 +90,26 @@ function Profile() {
           // Fetch liked posts
           try {
             const likedPostIds = await getLikedPostIdsForUser(currentUser.uid);
+            console.log("[Antigravity] Liked post IDs fetched:", likedPostIds);
             const likedPostsFetched = await Promise.all(
               likedPostIds.map(async (postId, idx) => {
                 try {
                   const p = await getPost(postId);
-                  return formatPostData(p, idx);
+                  if (!p) {
+                    console.log(`[Antigravity] Liked post ${postId} not found in DB`);
+                    return null;
+                  }
+                  const formatted = await formatPostData(p, idx);
+                  return formatted;
                 } catch (e) {
-                  console.error(`Error fetching individual liked post ${postId}:`, e);
+                  console.error(`[Antigravity] Error fetching individual liked post ${postId}:`, e);
                   return null;
                 }
               })
             );
-            setLikedPosts(likedPostsFetched.filter(Boolean));
+            const finalLikes = likedPostsFetched.filter(Boolean);
+            console.log("[Antigravity] Final liked posts formatted:", finalLikes);
+            setLikedPosts(finalLikes);
           } catch (err) {
             console.error("Error loading liked posts:", err);
           }
@@ -108,17 +117,22 @@ function Profile() {
           // Fetch view history
           try {
             const historyList = await getViewHistoryForUser(currentUser.uid);
+            console.log("[Antigravity] View history list fetched:", historyList);
             const historyPostsFetched = await Promise.all(
               historyList.map(async (h, idx) => {
                 try {
                   const p = await getPost(h.post_id);
+                  if (!p) {
+                    console.log(`[Antigravity] History post ${h.post_id} not found in DB`);
+                    return null;
+                  }
                   const formatted = await formatPostData(p, idx);
                   if (formatted) {
                     formatted.viewedAt = h.viewed_at;
                   }
                   return formatted;
                 } catch (e) {
-                  console.error(`Error fetching individual history post ${h.post_id}:`, e);
+                  console.error(`[Antigravity] Error fetching individual history post ${h.post_id}:`, e);
                   return null;
                 }
               })
@@ -126,6 +140,7 @@ function Profile() {
             const sortedHistory = historyPostsFetched
               .filter(Boolean)
               .sort((a, b) => b.viewedAt.toMillis() - a.viewedAt.toMillis());
+            console.log("[Antigravity] Sorted history posts formatted:", sortedHistory);
             setHistoryPosts(sortedHistory);
           } catch (err) {
             console.error("Error loading view history:", err);
@@ -160,27 +175,27 @@ function Profile() {
   }
 
   // Determine if we use live or mock data
-  const isLive = !!user && !!profileData;
+  const isLive = !!user;
   const displayName = isLive 
-    ? (profileData.displayName || profileData.nickname || `${profileData.lastName || ""} ${profileData.firstName || ""}`.trim() || "ユーザー")
+    ? (profileData?.displayName || profileData?.nickname || `${profileData?.lastName || ""} ${profileData?.firstName || ""}`.trim() || "ユーザー")
     : "佐々木 太郎";
   
-  const userType = isLive ? profileData.userType : "general"; // general | politician | shop
+  const userType = isLive && profileData ? profileData.userType : "general"; // general | politician | shop
 
-  const formattedAddress = isLive && profileData.address
+  const formattedAddress = isLive && profileData?.address
     ? `${profileData.address.prefecture} ${profileData.address.addressDetail}`
     : "東京都新宿区";
 
-  const email = isLive ? (profileData.email || user.email) : "sasaki.taro@example.com";
-  const avatarUrl = isLive ? profileData.profileImage : "/user_Icon/user_icon1.jpg";
+  const email = isLive ? (profileData?.email || user.email) : "sasaki.taro@example.com";
+  const avatarUrl = isLive && profileData?.profileImage ? profileData.profileImage : "/user_Icon/user_icon1.jpg";
 
   // Bio content based on user type
   let bioContent = "";
   if (isLive) {
     if (userType === "politician") {
-      bioContent = profileData.pledge || "活動方針や公約が未設定です。";
+      bioContent = profileData?.pledge || "活動方針や公約が未設定です。";
     } else if (userType === "shop") {
-      bioContent = profileData.shopIntroduction || "店舗紹介が未設定です。";
+      bioContent = profileData?.shopIntroduction || "店舗紹介が未設定です。";
     } else {
       bioContent = "街アプを利用して、地域の課題解決やコミュニティ活性化に貢献しています。";
     }
