@@ -65,6 +65,7 @@ export default function ChatPage() {
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
+  const [isSending, setIsSending] = useState(false);
   
   // 絵文字ピッカーの表示状態
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -304,14 +305,18 @@ export default function ChatPage() {
   // --- 4. メッセージの送信処理 ---
   const handleSend = async (e) => {
     if (e) e.preventDefault();
-    if (!inputText.trim() || !selectedRoomId || !currentUser) return;
+    if (isSending || !inputText.trim() || !selectedRoomId || !currentUser) return;
 
     const userText = inputText.trim();
     setInputText("");
+    setIsSending(true);
 
     try {
       const activeRoom = rooms.find((r) => r.id === selectedRoomId);
-      if (!activeRoom) return;
+      if (!activeRoom) {
+        setIsSending(false);
+        return;
+      }
 
       await sendChatMessage(
         selectedRoomId,
@@ -321,6 +326,8 @@ export default function ChatPage() {
       );
     } catch (err) {
       console.error("Failed to send message to database:", err);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -389,8 +396,9 @@ export default function ChatPage() {
     }
   };
 
-  // 入力フォームでのEnterキー送信対応（Shift+Enterは改行）
+  // 入力フォームでのEnterキー送信対応（Shift+Enterは改行、IME確定時のEnterは送信しない）
   const handleKeyDown = (e) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -659,7 +667,7 @@ export default function ChatPage() {
                   </div>
                 )}
               </div>
-              <button type="submit" className={styles.sendBtn} title="送信">
+              <button type="submit" className={styles.sendBtn} title="送信" disabled={isSending}>
                 <FontAwesomeIcon icon={faPaperPlane} size="sm" />
               </button>
             </form>
