@@ -44,6 +44,9 @@ export default function Header() {
             <Link href="/profile/likes" className={styles.navLink}>
               いいね
             </Link>
+            <Link href="/chat" className={styles.navLink}>
+              チャット
+            </Link>
             <Link href="/settings" className={styles.navLink}>
               設定
             </Link>
