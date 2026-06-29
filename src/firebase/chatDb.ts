@@ -55,6 +55,12 @@ export interface ChatMessage {
   created_at: Timestamp;
   /** システム通知かどうか */
   is_system?: boolean;
+  /** 添付画像のURL */
+  image_url?: string | null;
+  /** 既読フラグ */
+  read?: boolean;
+  /** 画像が消去されたかどうかのフラグ */
+  image_deleted?: boolean;
 }
 
 // 復号化された平文メッセージのインターフェース
@@ -65,6 +71,12 @@ export interface DecryptedChatMessage {
   content_text: string;
   created_at: Timestamp;
   is_system?: boolean;
+  /** 添付画像のURL */
+  image_url?: string | null;
+  /** 既読フラグ */
+  read?: boolean;
+  /** 画像が消去されたかどうかのフラグ */
+  image_deleted?: boolean;
 }
 
 // --- Base64 / ArrayBuffer 変換ヘルパー (ブラウザ・Node.js両対応) ---
@@ -228,7 +240,8 @@ export async function sendChatMessage(
   roomId: string,
   senderId: string,
   recipientId: string,
-  text: string
+  text: string,
+  imageUrl?: string | null
 ): Promise<string> {
   try {
     // コンテンツを暗号化
@@ -241,15 +254,21 @@ export async function sendChatMessage(
       recipient_id: recipientId,
       encrypted_content,
       iv,
-      created_at: Timestamp.now()
+      created_at: Timestamp.now(),
+      image_url: imageUrl || null,
+      read: false
     });
 
     // 親のチャットルームの最終メッセージ情報を更新
     const roomRef = doc(db, "chat_rooms", roomId);
+    // 画像送信の時は最後のメッセージプレビューを "[画像]" にする
+    const displayLastText = imageUrl && !text ? "[画像]" : text;
+    const { encrypted_content: last_encrypted, iv: last_iv } = await encryptContent(displayLastText, roomId);
+
     await updateDoc(roomRef, {
       last_message_at: Timestamp.now(),
-      last_message_text: encrypted_content,
-      last_message_iv: iv
+      last_message_text: last_encrypted,
+      last_message_iv: last_iv
     });
 
     return docRef.id;
@@ -324,6 +343,9 @@ export async function getDecryptedMessages(roomId: string): Promise<DecryptedCha
           sender_id: data.sender_id,
           recipient_id: data.recipient_id,
           content_text: plainText,
+          image_url: data.image_url || null,
+          read: data.read || false,
+          image_deleted: data.image_deleted || false,
           created_at: data.created_at,
           is_system: data.is_system || false
         });
@@ -335,6 +357,9 @@ export async function getDecryptedMessages(roomId: string): Promise<DecryptedCha
           sender_id: data.sender_id,
           recipient_id: data.recipient_id,
           content_text: "🔒 [復号化に失敗した暗号メッセージ]",
+          image_url: data.image_url || null,
+          read: data.read || false,
+          image_deleted: data.image_deleted || false,
           created_at: data.created_at,
           is_system: data.is_system || false
         });
@@ -358,8 +383,7 @@ export async function getChatRoomsForUser(userId: string): Promise<ChatRoom[]> {
     const roomsCollectionRef = collection(db, "chat_rooms");
     const q = query(
       roomsCollectionRef,
-      where("user_ids", "array-contains", userId),
-      orderBy("last_message_at", "desc")
+      where("user_ids", "array-contains", userId)
     );
     
     const querySnapshot = await getDocs(q);
@@ -369,6 +393,13 @@ export async function getChatRoomsForUser(userId: string): Promise<ChatRoom[]> {
         id: docSnap.id,
         ...docSnap.data()
       } as ChatRoom);
+    });
+
+    // インデックス作成エラーを回避するため、メモリ上で最終メッセージ日時の降順にソートします
+    rooms.sort((a, b) => {
+      const timeA = a.last_message_at?.toMillis() || 0;
+      const timeB = b.last_message_at?.toMillis() || 0;
+      return timeB - timeA;
     });
 
     return rooms;
