@@ -11,6 +11,8 @@ import BadButton from '@/components/BadButton';
 import CommentSection from '@/components/CommentSection';
 import { getPosts } from '@/src/firebase/postDb';
 import { getUserProfile } from '@/src/firebase/userDb';
+import { hasLikedPost, likePost, unlikePost } from '@/src/firebase/likeDb';
+import { auth } from '@/src/firebase/firebase';
 
 function Page({ params }) {
   const { id } = use(params);
@@ -54,23 +56,34 @@ function Page({ params }) {
           })
         );
 
-        // UIコンポーネント(PostCard)が期待するフォーマットにマッピング
-        const mappedPosts = fetchedPosts.map(p => {
-          const user = userProfiles[p.author_uid] || {};
-          return {
-            id: p.id,
-            name: user.displayName || user.nickname || "匿名ユーザー",
-            userIcon: user.profileImage || "/user_Icon/user_icon1.jpg",
-            title: p.title || "無題の投稿",
-            tags: p.tags || "その他",
-            image: p.image_url || "/post_image/post_image1.jpg",
-            createAt: p.created_at ? new Date(p.created_at.seconds * 1000).toLocaleDateString() : "日付なし",
-            content: p.content_text || "",
-            likes: p.likes || "0",
-            questionText: p.questionText || null,
-            answerText: p.answerText || null,
-          };
-        });
+        // UIコンポーネント(PostCard)が期待するフォーマットにマッピング (非同期対応)
+        const uid = auth.currentUser?.uid || "user1";
+        const mappedPosts = await Promise.all(
+          fetchedPosts.map(async (p) => {
+            const user = userProfiles[p.author_uid] || {};
+            let isLiked = false;
+            try {
+              isLiked = await hasLikedPost(p.id, uid);
+            } catch (e) {
+              console.error("Failed to check if post is liked:", e);
+            }
+            return {
+              id: p.id,
+              name: user.displayName || user.nickname || "匿名ユーザー",
+              userIcon: user.profileImage || "/user_Icon/user_icon1.jpg",
+              title: p.title || "無題の投稿",
+              tags: p.tags || "その他",
+              image: p.image_url || "/post_image/post_image1.jpg",
+              createAt: p.created_at ? new Date(p.created_at.seconds * 1000).toLocaleDateString() : "日付なし",
+              content: p.content_text || "",
+              likes: p.likes || "0",
+              questionText: p.questionText || null,
+              answerText: p.answerText || null,
+              isLiked: isLiked,
+              isDisliked: false
+            };
+          })
+        );
 
         setPosts(mappedPosts);
       } catch (err) {
@@ -155,6 +168,74 @@ function Page({ params }) {
     }
   };
 
+  // いいねのアクション（遷移なし）
+  const handleLike = async () => {
+    if (activeIndex === -1 || posts.length === 0) return;
+    const currentPost = posts[activeIndex];
+    const uid = auth.currentUser?.uid || "user1";
+    const newLiked = !currentPost.isLiked;
+
+    // UIを即座に更新する（楽観的アップデート）
+    setPosts(prev => prev.map((p, idx) => {
+      if (idx === activeIndex) {
+        return {
+          ...p,
+          isLiked: newLiked,
+          likes: newLiked ? Number(p.likes) + 1 : Math.max(0, Number(p.likes) - 1),
+          isDisliked: newLiked ? false : p.isDisliked // いいねした場合は「いまいち」を解除
+        };
+      }
+      return p;
+    }));
+
+    try {
+      if (newLiked) {
+        await likePost(currentPost.id, uid);
+      } else {
+        await unlikePost(currentPost.id, uid);
+      }
+    } catch (err) {
+      console.error("Failed to toggle like in Firestore:", err);
+      // エラー時は元の状態にロールバック
+      setPosts(prev => prev.map((p, idx) => {
+        if (idx === activeIndex) {
+          return {
+            ...p,
+            isLiked: currentPost.isLiked,
+            likes: currentPost.likes,
+            isDisliked: currentPost.isDisliked
+          };
+        }
+        return p;
+      }));
+    }
+  };
+
+  // いまいちのアクション（遷移なし）
+  const handleDislike = () => {
+    if (activeIndex === -1 || posts.length === 0) return;
+    const currentPost = posts[activeIndex];
+    const newDisliked = !currentPost.isDisliked;
+
+    setPosts(prev => prev.map((p, idx) => {
+      if (idx === activeIndex) {
+        return {
+          ...p,
+          isDisliked: newDisliked,
+          isLiked: newDisliked ? false : p.isLiked, // いまいちした場合は「いいね」を解除
+          likes: (newDisliked && p.isLiked) ? Math.max(0, Number(p.likes) - 1) : p.likes
+        };
+      }
+      return p;
+    }));
+
+    // もともといいねしていた場合は、いまいちの選択に伴いFirestore側のいいねを解除
+    if (newDisliked && currentPost.isLiked) {
+      const uid = auth.currentUser?.uid || "user1";
+      unlikePost(currentPost.id, uid).catch(e => console.error("Failed to unlike on dislike:", e));
+    }
+  };
+
   if (loading) {
     return <div className={styles.loading}>投稿を読み込み中...</div>;
   }
@@ -212,8 +293,8 @@ function Page({ params }) {
           postId={currentPost.id} 
           onCommentSubmitted={() => setCommentRefreshCount(prev => prev + 1)} 
         />
-        <BadButton onClick={handlePrevious} />
-        <NiceButton onClick={handleNext} />
+        <BadButton onClick={handleDislike} isDisliked={currentPost.isDisliked} />
+        <NiceButton onClick={handleLike} isLiked={currentPost.isLiked} />
       </div>
 
       {/* 現在アクティブな投稿に対応するコメントを表示 */}
