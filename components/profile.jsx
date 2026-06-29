@@ -69,19 +69,24 @@ function Profile() {
           // Fetch user's posts
           try {
             const posts = await getPosts({ author_uid: currentUser.uid });
+            console.log("[Antigravity] User's own posts fetched:", posts);
             // Map posts to match the UI format of data/posts.js
-            const formattedPosts = posts.map((p, idx) => ({
-              id: p.id || `post_${idx}`,
-              name: data?.displayName || data?.nickname || currentUser.displayName || "ユーザー",
-              address: data?.address ? `${data.address.prefecture}${data.address.addressDetail}` : "",
-              userIcon: data?.profileImage || "/user_Icon/user_icon1.jpg",
-              title: p.title || p.content_text.substring(0, 15) + (p.content_text.length > 15 ? "..." : ""),
-              tags: p.tags || "一般",
-              image: p.image_url || "/post_image/post_image1.jpg",
-              createAt: p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString('ja-JP') : new Date().toLocaleDateString('ja-JP'),
-              content: p.content_text,
-              likes: p.likes || "0",
-            }));
+            const formattedPosts = posts.map((p, idx) => {
+              const contentText = p.content_text || "";
+              return {
+                id: p.id || `post_${idx}`,
+                name: data?.displayName || data?.nickname || currentUser.displayName || "ユーザー",
+                address: data?.address ? `${data.address.prefecture}${data.address.addressDetail}` : "",
+                userIcon: data?.profileImage || "/user_Icon/user_icon1.jpg",
+                title: p.title || contentText.substring(0, 15) + (contentText.length > 15 ? "..." : ""),
+                tags: p.tags || "一般",
+                image: p.image_url || "/post_image/post_image1.jpg",
+                createAt: p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString('ja-JP') : new Date().toLocaleDateString('ja-JP'),
+                content: contentText,
+                likes: p.likes || "0",
+              };
+            });
+            console.log("[Antigravity] Formatted user's own posts:", formattedPosts);
             setUserPosts(formattedPosts);
           } catch (err) {
             console.error("Error loading user's own posts:", err);
