@@ -1,0 +1,568 @@
+.pageWrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #f5f8ff 0%, #f0f3fe 100%);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #333333;
+}
+
+/* メインコンテンツ */
+.mainContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  box-sizing: border-box;
+}
+
+.card {
+  background-color: #ffffff;
+  border: 1px solid #eaf0fc;
+  border-radius: 32px;
+  box-shadow: 0 12px 40px rgba(0, 82, 204, 0.04);
+  width: 100%;
+  max-width: 600px;
+  padding: 40px 48px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 580px) {
+  .card {
+    padding: 32px 20px;
+    border-radius: 24px;
+  }
+}
+
+.titleArea {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #001f60;
+  margin: 0 0 10px 0;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #7b8ab8;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* フォーム要素 */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.gridRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .gridRow {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.labelArea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.requiredBadge {
+  background-color: #001f60;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.validationCheck {
+  color: #10b981;
+  font-size: 14px;
+}
+
+.inputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  background-color: #f0f3fe;
+  border: 1px solid #e1e5f2;
+  border-radius: 16px;
+  padding: 14px 20px;
+  font-size: 15px;
+  color: #1f2937;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.input:focus {
+  border-color: #0052cc;
+  background-color: #ffffff;
+}
+
+.lockedInput {
+  background-color: #f1f3fc;
+  border-color: #e1e5f2;
+  color: #8892b0;
+  cursor: not-allowed;
+  padding-right: 40px;
+}
+
+.lockedInput:focus {
+  background-color: #f1f3fc;
+  border-color: #e1e5f2;
+}
+
+.lockIcon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
+  font-size: 14px;
+}
+
+/* 郵便番号検索 */
+.postalSearchGroup {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.searchButton {
+  background-color: #c2d8ff;
+  color: #003db3;
+  border: none;
+  border-radius: 16px;
+  padding: 14px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 82, 204, 0.05);
+}
+
+.searchButton:hover {
+  background-color: #adcfff;
+}
+
+.searchButton:active {
+  transform: scale(0.98);
+}
+
+/* ドロップダウン */
+.selectInput {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%237b8ab8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+/* ヒント・注記 */
+.hint {
+  font-size: 11px;
+  color: #7b8ab8;
+  margin-top: 4px;
+  text-align: left;
+}
+
+/* 送信・キャンセルボタン */
+.buttonGroup {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+@media (max-width: 480px) {
+  .buttonGroup {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cancelFormButton {
+  background-color: #ffffff;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 9999px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cancelFormButton:hover {
+  background-color: #f9fafb;
+  border-color: #c5c7cb;
+}
+
+.submitButton {
+  background-color: #003db3;
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 61, 179, 0.2);
+  transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.submitButton:hover {
+  background-color: #002e8c;
+  box-shadow: 0 6px 18px rgba(0, 61, 179, 0.3);
+}
+
+.submitButton:active {
+  transform: scale(0.98);
+}
+
+.submitButton:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* 読み込み中 */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  color: #7b8ab8;
+  gap: 16px;
+}
+
+.successMessage {
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 16px;
+  padding: 16px 20px;
+  color: #065f46;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.errorMessage {
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 16px;
+  padding: 16px 20px;
+  color: #991b1b;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* プロフィール画像アップローダー */
+.avatarUploadContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.avatarWrapper {
+  position: relative;
+  cursor: pointer;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 12px;
+  user-select: none;
+}
+
+.avatarCircle {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #eef2ff;
+  border: 1px solid #c2d8ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(194, 216, 255, 0.2);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.avatarWrapper:hover .avatarCircle {
+  border-color: #003db3;
+  background-color: #e0ebff;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarPlaceholder {
+  color: #7b8ab8;
+  font-size: 44px;
+}
+
+.cameraBadge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #001f60;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.avatarWrapper:hover .cameraBadge {
+  background-color: #003db3;
+  transform: scale(1.05);
+}
+
+.avatarLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: #003db3;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-bottom: 2px;
+}
+
+.avatarLabel:hover {
+  color: #002e8c;
+}
+
+.avatarSubtext {
+  font-size: 11px;
+  color: #7b8ab8;
+  margin: 0;
+}
+
+/* 切り抜きモーダル */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 31, 96, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modalContent {
+  background-color: #ffffff;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 360px;
+  padding: 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 20px 50px rgba(0, 31, 96, 0.15);
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modalTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #001f60;
+  margin: 0 0 16px 0;
+  text-align: center;
+}
+
+.cropperViewport {
+  width: 280px;
+  height: 280px;
+  position: relative;
+  overflow: hidden;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  cursor: grab;
+  user-select: none;
+}
+
+.cropperViewport:active {
+  cursor: grabbing;
+}
+
+.cropperImage {
+  position: absolute;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.cropOverlayCircle {
+  position: absolute;
+  top: 40px;
+  left: 40px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 2px dashed #0052cc;
+  box-shadow: 0 0 0 9999px rgba(0, 31, 96, 0.5);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.sliderContainer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 16px 0;
+}
+
+.sliderIcon {
+  color: #7b8ab8;
+  font-size: 14px;
+}
+
+.slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background-color: #e2e8f0;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #003db3;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 61, 179, 0.2);
+  transition: transform 0.1s, background-color 0.2s;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background-color: #002e8c;
+  transform: scale(1.1);
+}
+
+.modalButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.cancelButton {
+  background-color: #ffffff;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 9999px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.cancelButton:hover {
+  background-color: #f9fafb;
+  border-color: #c5c7cb;
+}
+
+.applyButton {
+  background-color: #003db3;
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 61, 179, 0.15);
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.applyButton:hover {
+  background-color: #002e8c;
+}
