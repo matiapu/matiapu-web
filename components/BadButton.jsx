@@ -5,10 +5,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import React from 'react'
 import styles from './NiceBadButton.module.css'
 
-function BadButton({ onClick }) {
+function BadButton({ onClick, isDisliked = false }) {
   return (
     <div>
-        <button className={styles.Down} onClick={onClick}><FontAwesomeIcon icon={ faThumbsDown } /></button>
+        <button 
+          className={`${styles.Down} ${isDisliked ? styles.disliked : ''}`} 
+          onClick={onClick}
+          aria-label="いまいち"
+        >
+          <FontAwesomeIcon icon={ faThumbsDown } />
+        </button>
     </div>
   )
 }

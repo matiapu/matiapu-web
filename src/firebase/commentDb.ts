@@ -150,34 +150,37 @@ export async function getCommentsForPost(
 ): Promise<Comment[]> {
   try {
     const commentsCollectionRef = collection(db, "comments");
-    let q = query(
+    // 複合インデックスエラーを避けるため、クエリは単純な post_id でのフィルタのみに留める
+    const q = query(
       commentsCollectionRef,
       where("post_id", "==", postId)
     );
 
-    if (options.rootOnly) {
-      q = query(q, where("parent_id", "==", null));
-    }
-
-    // コメントは通常時系列順（古い順）に読むことが多いため昇順にします
-    q = query(q, orderBy("created_at", "asc"));
-
-    if (options.startAfterDoc) {
-      q = query(q, startAfter(options.startAfterDoc));
-    }
-
-    if (options.limitCount) {
-      q = query(q, limit(options.limitCount));
-    }
-
     const querySnapshot = await getDocs(q);
-    const comments: Comment[] = [];
+    let comments: Comment[] = [];
     querySnapshot.forEach((docSnap) => {
       comments.push({
         id: docSnap.id,
         ...docSnap.data()
       } as Comment);
     });
+
+    // クライアント側で rootOnly フィルタを適用 (parent_id === null)
+    if (options.rootOnly) {
+      comments = comments.filter(c => c.parent_id === null);
+    }
+
+    // クライアント側で created_at の古い順 (昇順) にソート
+    comments.sort((a, b) => {
+      const timeA = a.created_at?.seconds || 0;
+      const timeB = b.created_at?.seconds || 0;
+      return timeA - timeB;
+    });
+
+    // 取得件数制限 (limit) をクライアント側で適用
+    if (options.limitCount) {
+      comments = comments.slice(0, options.limitCount);
+    }
 
     return comments;
   } catch (err) {
@@ -197,8 +200,7 @@ export async function getRepliesForComment(commentId: string): Promise<Comment[]
     const commentsCollectionRef = collection(db, "comments");
     const q = query(
       commentsCollectionRef,
-      where("parent_id", "==", commentId),
-      orderBy("created_at", "asc")
+      where("parent_id", "==", commentId)
     );
 
     const querySnapshot = await getDocs(q);
@@ -208,6 +210,13 @@ export async function getRepliesForComment(commentId: string): Promise<Comment[]
         id: docSnap.id,
         ...docSnap.data()
       } as Comment);
+    });
+
+    // クライアント側で created_at の古い順 (昇順) にソート
+    replies.sort((a, b) => {
+      const timeA = a.created_at?.seconds || 0;
+      const timeB = b.created_at?.seconds || 0;
+      return timeA - timeB;
     });
 
     return replies;

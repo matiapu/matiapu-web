@@ -5,10 +5,16 @@ import { faThumbsUp } from '@fortawesome/free-solid-svg-icons';
 import styles from './NiceBadButton.module.css'
 
 
-function NiceButton({ onClick }) {
+function NiceButton({ onClick, isLiked = false }) {
   return (
     <div>
-        <button className={styles.Up} onClick={onClick}><FontAwesomeIcon icon={ faThumbsUp } /></button>
+        <button 
+          className={`${styles.Up} ${isLiked ? styles.liked : ''}`} 
+          onClick={onClick}
+          aria-label="いいね"
+        >
+          <FontAwesomeIcon icon={ faThumbsUp } />
+        </button>
     </div>
   )
 }
