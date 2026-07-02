@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEyeSlash, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEyeSlash, faCircleQuestion, faSun, faCloud, faCloudSun, faMoon, faCloudMoon } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import styles from "./Login.module.css";
 
@@ -18,6 +18,21 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [timeOfDay, setTimeOfDay] = useState("night");
+
+  // 現在の時刻に基づいて時間帯（朝・昼・夕・夜）を判定
+  useEffect(() => {
+    const hours = new Date().getHours();
+    if (hours >= 5 && hours < 11) {
+      setTimeOfDay("morning");
+    } else if (hours >= 11 && hours < 16) {
+      setTimeOfDay("noon");
+    } else if (hours >= 16 && hours < 19) {
+      setTimeOfDay("evening");
+    } else {
+      setTimeOfDay("night");
+    }
+  }, []);
 
   // すでにセッションCookieがある場合はトップページへリダイレクト
   useEffect(() => {
@@ -97,16 +112,57 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={styles.pageWrapper}>
+    <div className={`${styles.pageWrapper} ${timeOfDay}`}>
       {/* ヘッダー */}
       <header className={styles.header}>
         <div className={styles.logoArea} onClick={() => router.push("/")}>
           <img src="/logo.png" alt="マチアプ" className={styles.logoImage} />
           <span className={styles.logoText}>マチアプ</span>
         </div>
-        <button className={styles.helpButton} aria-label="ヘルプ">
-          <FontAwesomeIcon icon={faCircleQuestion} />
-        </button>
+        <div className={styles.headerControls}>
+          {/* 時間帯切り替えトグル */}
+          <div className={styles.timeToggleContainer}>
+            <button 
+              type="button"
+              onClick={() => setTimeOfDay("morning")} 
+              className={`${styles.timeButton} ${timeOfDay === "morning" ? styles.timeButtonActive : ""}`}
+              title="朝 (5:00 - 11:00)"
+              aria-label="背景を朝に変更"
+            >
+              <FontAwesomeIcon icon={faCloudSun} />
+            </button>
+            <button 
+              type="button"
+              onClick={() => setTimeOfDay("noon")} 
+              className={`${styles.timeButton} ${timeOfDay === "noon" ? styles.timeButtonActive : ""}`}
+              title="昼 (11:00 - 16:00)"
+              aria-label="背景を昼に変更"
+            >
+              <FontAwesomeIcon icon={faSun} />
+            </button>
+            <button 
+              type="button"
+              onClick={() => setTimeOfDay("evening")} 
+              className={`${styles.timeButton} ${timeOfDay === "evening" ? styles.timeButtonActive : ""}`}
+              title="夕方 (16:00 - 19:00)"
+              aria-label="背景を夕方に変更"
+            >
+              <FontAwesomeIcon icon={faCloudMoon} />
+            </button>
+            <button 
+              type="button"
+              onClick={() => setTimeOfDay("night")} 
+              className={`${styles.timeButton} ${timeOfDay === "night" ? styles.timeButtonActive : ""}`}
+              title="夜 (19:00 - 5:00)"
+              aria-label="背景を夜に変更"
+            >
+              <FontAwesomeIcon icon={faMoon} />
+            </button>
+          </div>
+          <button className={styles.helpButton} aria-label="ヘルプ">
+            <FontAwesomeIcon icon={faCircleQuestion} />
+          </button>
+        </div>
       </header>
 
       {/* メインコンテンツ */}
