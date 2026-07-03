@@ -1,7 +1,6 @@
 "use client";
 
 import React, { use, useState, useEffect, useRef } from 'react';
-import React, { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PostCard from '@/components/PostCard';
 import NoMorePosts from '@/components/NoMorePosts';
