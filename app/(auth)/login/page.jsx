@@ -18,6 +18,21 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [timeOfDay, setTimeOfDay] = useState("night");
+
+  // 現在の時刻に基づいて時間帯（朝・昼・夜）を判定
+  useEffect(() => {
+    const hours = new Date().getHours();
+    if (hours >= 5 && hours < 11) {
+      setTimeOfDay("morning");
+    } else if (hours >= 11 && hours < 18) {
+      setTimeOfDay("noon");
+    } else {
+      // 夜の場合は通常夜(night)とランダム夜(night2)を判定
+      const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
+      setTimeOfDay(isNight2 ? "night2" : "night");
+    }
+  }, []);
 
   // すでにセッションCookieがある場合はトップページへリダイレクト
   useEffect(() => {
@@ -97,16 +112,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={styles.pageWrapper}>
+    <div className={`${styles.pageWrapper} ${timeOfDay}`}>
       {/* ヘッダー */}
       <header className={styles.header}>
         <div className={styles.logoArea} onClick={() => router.push("/")}>
           <img src="/logo.png" alt="マチアプ" className={styles.logoImage} />
           <span className={styles.logoText}>マチアプ</span>
         </div>
-        <button className={styles.helpButton} aria-label="ヘルプ">
-          <FontAwesomeIcon icon={faCircleQuestion} />
-        </button>
+        <div className={styles.headerControls}>
+          <button className={styles.helpButton} aria-label="ヘルプ">
+            <FontAwesomeIcon icon={faCircleQuestion} />
+          </button>
+        </div>
       </header>
 
       {/* メインコンテンツ */}
