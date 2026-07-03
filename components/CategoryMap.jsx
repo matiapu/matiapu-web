@@ -1,12 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
 import styles from './CategoryMap.module.css';
 import Header from '@/components/Header';
 import SideNav from '@/components/SideNav';
 import { getDisasters } from '@/src/firebase/disasterDb';
 import Link from 'next/link';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/src/firebase/firebase';
+import { getUserProfile } from '@/src/firebase/userDb';
+import { getPosts } from '@/src/firebase/postDb';
 
 // ユーザー指定の震度カラー
 const INTENSITY_COLORS = {
@@ -164,6 +168,54 @@ const PREFECTURE_COORDS = {
   "沖縄県": { lat: 26.2125, lng: 127.68111 }
 };
 
+// マップの中心とズームを制御するコンポーネント
+function MapController({ center, zoom }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (map) {
+      map.setCenter(center);
+    }
+  }, [map, center]);
+
+  useEffect(() => {
+    if (map) {
+      map.setZoom(zoom);
+    }
+  }, [map, zoom]);
+
+  return null;
+}
+
+// ユーザーの活動地域（住所）をジオコーディングしてマップの中心を更新するコンポーネント
+function AddressGeocoder({ address, onGeocode, skip }) {
+  const map = useMap();
+  const geocodedAddressRef = useRef("");
+
+  useEffect(() => {
+    if (skip) return;
+    if (!map || !address || !window.google || !window.google.maps) return;
+    if (geocodedAddressRef.current === address) return;
+
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ address }, (results, status) => {
+      if (status === 'OK' && results && results[0]) {
+        geocodedAddressRef.current = address;
+        const location = results[0].geometry.location;
+        const coords = {
+          lat: location.lat(),
+          lng: location.lng()
+        };
+        onGeocode(coords);
+      } else {
+        console.warn("Geocoding failed for address:", address, status);
+      }
+    });
+  }, [map, address, onGeocode, skip]);
+
+  return null;
+}
+
 function CategoryMap() {
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
@@ -209,8 +261,72 @@ function CategoryMap() {
   }, [isInteracted]);
 
   // マップの表示中心とズーム状態を管理
-  const [mapCenter, setMapCenter] = useState({ lat: 35.681228, lng: 139.767052 });
-  const [mapZoom, setMapZoom] = useState(14);
+  const [mapCenter, setMapCenter] = useState(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("matiapu_user_region_coords");
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (e) {}
+      }
+    }
+    return { lat: 35.681228, lng: 139.767052 };
+  });
+
+  const [mapZoom, setMapZoom] = useState(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("matiapu_user_region_zoom");
+      if (cached) {
+        return Number(cached);
+      }
+    }
+    return 14;
+  });
+
+  const [userAddress, setUserAddress] = useState("");
+
+  // ユーザーのアクティブ地域（住所）を監視・取得
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const profile = await getUserProfile(user.uid);
+          if (profile && profile.address) {
+            const { prefecture, addressDetail } = profile.address;
+            const pref = (prefecture && prefecture !== "undefined") ? prefecture : "";
+            const detail = (addressDetail && addressDetail !== "undefined") ? addressDetail : "";
+            const fullAddress = `${pref}${detail}`.trim();
+            if (fullAddress) {
+              setUserAddress(fullAddress);
+            }
+
+            // Set immediate default center based on prefecture
+            if (pref && PREFECTURE_COORDS[pref]) {
+              const coords = PREFECTURE_COORDS[pref];
+              setMapCenter(coords);
+              setMapZoom(11);
+              localStorage.setItem("matiapu_user_region_coords", JSON.stringify(coords));
+              localStorage.setItem("matiapu_user_region_zoom", "11");
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load user profile for map centering:", err);
+        }
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, []);
+
+  const hasEarthquake = locations.some(loc => loc.category === "disaster" && loc.isEpicenter);
+
+  const handleGeocode = useCallback((coords) => {
+    if (hasEarthquake) return;
+    setMapCenter(coords);
+    setMapZoom(14);
+    localStorage.setItem("matiapu_user_region_coords", JSON.stringify(coords));
+    localStorage.setItem("matiapu_user_region_zoom", "14");
+  }, [hasEarthquake, setMapCenter, setMapZoom]);
 
   const handleCategoryChange = (category) => {
     setSelectedCategory(category);
@@ -223,9 +339,48 @@ function CategoryMap() {
       try {
         setError(null);
         
-        // 1. ダミーロケーションから災害以外のものを抽出
-        const dummyData = await getLocationsData();
-        const nonDisasterLocations = dummyData.filter(data => data.category !== 'disaster');
+        // 1. Firestoreから全投稿を取得
+        let dbPosts = [];
+        try {
+          dbPosts = await getPosts();
+        } catch (dbErr) {
+          console.error('Firestoreから投稿情報の取得に失敗しました。', dbErr);
+        }
+
+        // 2. 位置情報がある投稿をマッピング
+        const nonDisasterLocations = dbPosts
+          .map(p => {
+            const lat = p.geo_location?.latitude ?? p.location?.latitude;
+            const lng = p.geo_location?.longitude ?? p.location?.longitude;
+            if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+
+            const content = p.content_text || p.contentText || "";
+            const name = content.substring(0, 15) + (content.length > 15 ? "..." : "");
+
+            // カテゴリの決定
+            let category = "report"; // デフォルト
+            const tags = p.tags || p.tag || p.user_badge || p.userBadge || "";
+            if (tags.includes("災害") || p.category === "disaster") {
+              category = "disaster";
+            } else if (tags.includes("道路") || p.category === "road") {
+              category = "road";
+            } else if (tags.includes("お店") || p.category === "shop" || p.user_badge === "shop") {
+              category = "shop";
+            } else if (tags.includes("通報") || p.category === "report") {
+              category = "report";
+            } else if (p.category) {
+              category = p.category;
+            }
+
+            return {
+              id: p.id,
+              name: name,
+              lat: lat,
+              lng: lng,
+              category: category
+            };
+          })
+          .filter(loc => loc !== null);
 
         // 2. Firestoreから最新の災害情報を取得
         let firedisasters = [];
@@ -447,6 +602,8 @@ function CategoryMap() {
                 zoomControl: true
               }}
             >
+              <MapController center={mapCenter} zoom={mapZoom} />
+              <AddressGeocoder address={userAddress} onGeocode={handleGeocode} skip={hasEarthquake} />
               {/* フィルタリングされた配列をループしてピンを配置 */}
               {filteredLocations.map((data, index) => {
                 // カテゴリに応じたスタイルを取得（なければdefault）

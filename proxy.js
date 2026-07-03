@@ -28,9 +28,9 @@ export function proxy(request) {
 }
 
 export const config = {
-  // api, _next/static, _next/image, favicon.ico 以外のすべてのパスに適用
+  // api, _next/static, _next/image, favicon.ico, back_image 以外のすべてのパスに適用
   // /signup は除外せず、proxy内部で判定します。ただし/signup/detailsは保護されます
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|logo.png|apple_rainbow.svg).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|logo.png|apple_rainbow.svg|back_image).*)',
   ],
 };

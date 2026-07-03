@@ -1,6 +1,7 @@
 "use client";
 
 import React, { use, useState, useEffect, useRef } from 'react';
+import React, { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PostCard from '@/components/PostCard';
 import NoMorePosts from '@/components/NoMorePosts';
@@ -14,6 +15,11 @@ import { getUserProfile } from '@/src/firebase/userDb';
 import { hasLikedPost, likePost, unlikePost } from '@/src/firebase/likeDb';
 import { recordViewHistory } from '@/src/firebase/historyDb';
 import { auth } from '@/src/firebase/firebase';
+import { getPost } from '@/src/firebase/postDb';
+import { getUserProfile } from '@/src/firebase/userDb';
+
+// Re-export POSTS to maintain backward compatibility with other files importing it from here
+export { POSTS };
 
 function Page({ params }) {
   const { id } = use(params);
@@ -173,6 +179,8 @@ function Page({ params }) {
     } else {
       setIsCompleted(true);
     }
+    // If it's a DB post, since we don't have a simple sequence, mark completed
+    setIsCompleted(true);
   };
 
   const handlePrevious = () => {
