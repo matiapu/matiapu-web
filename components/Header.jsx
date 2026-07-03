@@ -31,29 +31,23 @@ export default function Header() {
           <Image src="/logo.png" alt="マチアプ" className={styles.logoImage} width={32} height={32} />
           <span className={styles.logoText}>マチアプ</span>
         </div>
-          <nav className={styles.nav}>
-            <Link href="/" className={styles.navLink}>
-              ホーム
-            </Link>
-            <Link href="/profile" className={styles.navLink}>
-              プロフィール
-            </Link>
-            <Link href="/posts/1" className={styles.navLink}>
-              投稿
-            </Link>
-            <Link href="/profile/likes" className={styles.navLink}>
-              いいね
-            </Link>
-            <Link href="/chat" className={styles.navLink}>
-              チャット
-            </Link>
-            <Link href="/settings" className={styles.navLink}>
-              設定
-            </Link>
-            <button onClick={handleLogout} className={styles.logoutButton}>
-              ログアウト
-            </button>
-          </nav>
+        <nav className={styles.nav}>
+          <Link href="/" className={styles.navLink}>
+            ホーム
+          </Link>
+          <Link href="/profile" className={styles.navLink}>
+            プロフィール
+          </Link>
+          <Link href="/posts/1" className={styles.navLink}>
+            投稿
+          </Link>
+          <Link href="/chat" className={styles.navLink}>
+            チャット
+          </Link>
+          <button onClick={handleLogout} className={styles.logoutButton}>
+            ログアウト
+          </button>
+        </nav>
       </header>
     </div>
   );

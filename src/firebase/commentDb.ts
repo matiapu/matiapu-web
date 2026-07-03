@@ -235,10 +235,10 @@ export async function getRepliesForComment(commentId: string): Promise<Comment[]
 export async function getThreadComments(rootCommentId: string): Promise<Comment[]> {
   try {
     const commentsCollectionRef = collection(db, "comments");
+    // 複合インデックスエラーを避けるため、orderBy はクライアント側で行う
     const q = query(
       commentsCollectionRef,
-      where("root_id", "==", rootCommentId),
-      orderBy("created_at", "asc")
+      where("root_id", "==", rootCommentId)
     );
 
     const querySnapshot = await getDocs(q);
@@ -248,6 +248,13 @@ export async function getThreadComments(rootCommentId: string): Promise<Comment[
         id: docSnap.id,
         ...docSnap.data()
       } as Comment);
+    });
+
+    // クライアント側で created_at の古い順 (昇順) にソート
+    replies.sort((a, b) => {
+      const timeA = a.created_at?.seconds || 0;
+      const timeB = b.created_at?.seconds || 0;
+      return timeA - timeB;
     });
 
     return replies;

@@ -15,10 +15,6 @@ function NoMorePosts() {
             <FontAwesomeIcon icon={faMap} className={styles.buttonIcon} />
             マップを見る
           </Link>
-          <Link href="/profile/likes" className={styles.secondaryButton}>
-            <FontAwesomeIcon icon={faHeart} className={styles.buttonIcon} />
-            いいねを見る
-          </Link>
         </div>
       </div>
     </div>

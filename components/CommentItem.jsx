@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import UserIcon from './UserIcon';
 import styles from './CommentItem.module.css';
-import { getRepliesForComment, createComment } from '@/src/firebase/commentDb';
+import { createComment, getThreadComments } from '@/src/firebase/commentDb';
 import { getUserProfile } from '@/src/firebase/userDb';
 import { auth } from '@/src/firebase/firebase';
 
@@ -17,7 +17,8 @@ function CommentItem({ comment, isReply = false, rootId = null, postId }) {
   // 返信データを取得する関数
   const fetchReplies = async () => {
     try {
-      const fetchedReplies = await getRepliesForComment(comment.id);
+      // getRepliesForComment の代わりに getThreadComments を使ってスレッド全体の返信をフラットにロード
+      const fetchedReplies = await getThreadComments(comment.id);
       
       // 各返信投稿者のプロファイルをロード
       const uids = Array.from(new Set(fetchedReplies.map(r => r.author_uid).filter(Boolean)));
@@ -78,12 +79,11 @@ function CommentItem({ comment, isReply = false, rootId = null, postId }) {
       
       try {
         const uid = auth.currentUser?.uid || "user1"; // ログインユーザーがいなければuser1にフォールバック
-        const resolvedRootId = isReply ? rootId : comment.id; // ルートIDの解決
 
         await createComment({
           post_id: postId,
           parent_id: comment.id,
-          root_id: resolvedRootId,
+          root_id: comment.id, // すべて最上位コメントに対する直接の返信にするため root_id に最上位コメントIDを設定
           author_uid: uid,
           content_text: replyText.trim()
         });
@@ -94,6 +94,7 @@ function CommentItem({ comment, isReply = false, rootId = null, postId }) {
         await fetchReplies();
       } catch (err) {
         console.error("Failed to post reply:", err);
+        alert("返信の投稿に失敗しました。");
       } finally {
         setSubmittingReply(false);
       }
@@ -111,18 +112,14 @@ function CommentItem({ comment, isReply = false, rootId = null, postId }) {
         <p className={styles.createAt}>{comment.createAt}</p>
       </div>
 
-      {/* 返信ボタンと返信するリンクの表示分け */}
-      <div className={styles.actionArea}>
-        {!isReply ? (
+      {/* 返信ボタンは最上位のコメントのみに表示 */}
+      {!isReply && (
+        <div className={styles.actionArea}>
           <button className={styles.Reply_Button} onClick={toggleReply}>
             {loading ? '読み込み中...' : showReply ? '返信を閉じる' : `返信を見る (${replies.length})`}
           </button>
-        ) : (
-          <button className={styles.ReplyLink_Button} onClick={toggleReply}>
-            {showReply ? '返信欄を閉じる' : '返信する'}
-          </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ネストされた返信スレッドおよび返信投稿フォーム */}
       {showReply && (
@@ -140,13 +137,13 @@ function CommentItem({ comment, isReply = false, rootId = null, postId }) {
             />
           </div>
 
-          {/* 子コメントのレンダリング */}
-          {replies.map(reply => (
+          {/* 子コメントのレンダリング (最上位コメントの直下のみ) */}
+          {!isReply && replies.map(reply => (
             <CommentItem 
               key={reply.id} 
               comment={reply} 
               isReply={true} 
-              rootId={rootId || comment.id}
+              rootId={comment.id}
               postId={postId}
             />
           ))}
