@@ -44,6 +44,16 @@ export interface Post {
   status: PostStatus;
   /** 投稿日時 */
   created_at: Timestamp;
+  /** 投稿のタイトル (オプショナル) */
+  title?: string;
+  /** 投稿のタグ (災害など、オプショナル) */
+  tags?: string;
+  /** いいね数 (オプショナル) */
+  likes?: string | number;
+  /** 質問テキスト (オプショナル) */
+  questionText?: string | null;
+  /** 回答テキスト (オプショナル) */
+  answerText?: string | null;
 }
 
 /**
@@ -166,26 +176,46 @@ export async function getPosts(options: GetPostsOptions = {}): Promise<Post[]> {
       q = query(q, where("author_uid", "==", options.author_uid));
     }
 
-    // 最新順ソート
-    q = query(q, orderBy("created_at", "desc"));
+    // 等価フィルタがある場合、orderByを混ぜると複合インデックスを要求されるため、
+    // インデックス不要とするためにクライアント側でソートする。
+    const needsClientSideSort = !!(options.status || options.author_uid);
+
+    if (!needsClientSideSort) {
+      // フィルタがない場合は Firestore 側で最新順ソート
+      q = query(q, orderBy("created_at", "desc"));
+    }
 
     // ページネーション用 (startAfter)
-    if (options.startAfterDoc) {
+    if (options.startAfterDoc && !needsClientSideSort) {
       q = query(q, startAfter(options.startAfterDoc));
     }
 
-    if (options.limitCount) {
+    if (options.limitCount && !needsClientSideSort) {
       q = query(q, limit(options.limitCount));
     }
 
     const querySnapshot = await getDocs(q);
-    const posts: Post[] = [];
+    let posts: Post[] = [];
     querySnapshot.forEach((docSnap) => {
       posts.push({
         id: docSnap.id,
         ...docSnap.data()
       } as Post);
     });
+
+    // クライアント側で最新順ソート
+    if (needsClientSideSort) {
+      posts.sort((a, b) => {
+        const timeA = a.created_at?.toMillis ? a.created_at.toMillis() : 0;
+        const timeB = b.created_at?.toMillis ? b.created_at.toMillis() : 0;
+        return timeB - timeA;
+      });
+
+      // クライアント側で limit の適用
+      if (options.limitCount) {
+        posts = posts.slice(0, options.limitCount);
+      }
+    }
 
     return posts;
   } catch (err) {

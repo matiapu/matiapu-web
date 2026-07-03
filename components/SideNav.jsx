@@ -17,18 +17,6 @@ export default function SideNav() {
         <span className={styles.label}>ホーム</span>
       </Link>
 
-      <Link href="/map" className={styles.navItem}>
-        <Image
-          src="/icons/map.png"
-          alt="地図"
-          width={32}
-          height={32}
-          className={styles.iconImage}
-          unoptimized
-        />
-        <span className={styles.label}>地図</span>
-      </Link>
-
       <Link href="/posts/matchs" className={styles.navItem}>
         <Image
           src="/icons/posts.png"
@@ -65,18 +53,6 @@ export default function SideNav() {
           unoptimized
         />
         <span className={styles.label}>議員</span>
-      </Link>
-
-      <Link href="/settings" className={styles.navItem}>
-        <Image
-          src="/icons/settings.png"
-          alt="設定"
-          width={32}
-          height={32}
-          className={styles.iconImage}
-          unoptimized
-        />
-        <span className={styles.label}>設定</span>
       </Link>
     </nav>
   );
