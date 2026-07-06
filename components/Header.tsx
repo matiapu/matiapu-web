@@ -44,6 +44,9 @@ export default function Header() {
           <Link href="/chat" className={styles.navLink}>
             チャット
           </Link>
+          <Link href="/politicians/matchs" className={styles.navLink}>
+            議員
+          </Link>
           <button onClick={handleLogout} className={styles.logoutButton}>
             ログアウト
           </button>
