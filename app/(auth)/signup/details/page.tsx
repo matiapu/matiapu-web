@@ -57,15 +57,18 @@ export default function SignupDetailsPage() {
   // 現在の時刻に基づいて時間帯（朝・昼・夜）を判定
   useEffect(() => {
     const hours = new Date().getHours();
-    if (hours >= 5 && hours < 11) {
-      setTimeOfDay("morning");
-    } else if (hours >= 11 && hours < 18) {
-      setTimeOfDay("noon");
-    } else {
-      // 夜の場合は通常夜(night)とランダム夜(night2)を判定
-      const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
-      setTimeOfDay(isNight2 ? "night2" : "night");
-    }
+    const timer = setTimeout(() => {
+      if (hours >= 5 && hours < 11) {
+        setTimeOfDay("morning");
+      } else if (hours >= 11 && hours < 18) {
+        setTimeOfDay("noon");
+      } else {
+        // 夜の場合は通常夜(night)とランダム夜(night2)を判定
+        const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
+        setTimeOfDay(isNight2 ? "night2" : "night");
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
@@ -672,6 +675,7 @@ export default function SignupDetailsPage() {
                 >
                   <div className={styles.avatarCircle}>
                     {avatarPreview ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img 
                         src={avatarPreview} 
                         alt="プロフィール画像" 
@@ -1079,6 +1083,7 @@ export default function SignupDetailsPage() {
             <div className={styles.successContainer}>
               <div className={styles.successIconWrapper} style={{ overflow: "hidden", position: "relative" }}>
                 {avatarPreview ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img 
                     src={avatarPreview} 
                     alt="プロフィール画像" 
@@ -1124,6 +1129,7 @@ export default function SignupDetailsPage() {
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={cropSrc}
                 alt="Crop Target"
