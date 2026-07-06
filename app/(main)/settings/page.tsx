@@ -13,14 +13,13 @@ import {
   faArrowLeft,
   faSave
 } from "@fortawesome/free-solid-svg-icons";
-import Link from "next/link";
 import styles from "./settings.module.css";
 
 // Firebase Auth, Storage, and Firestore operations
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, storage } from "@/src/firebase/firebase";
-import { getUserProfile, saveUserProfile } from "@/src/firebase/userDb";
+import { getUserProfile, saveUserProfile, UserType, UserProfile } from "@/src/firebase/userDb";
 
 // 都道府県リスト
 const PREFECTURES = [
@@ -33,37 +32,56 @@ const PREFECTURES = [
   "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
 ];
 
+interface FormDataState {
+  lastName: string;
+  firstName: string;
+  lastNameKana: string;
+  firstNameKana: string;
+  email: string;
+  nickname: string;
+  birthDateDisplay: string;
+  postalCode: string;
+  prefecture: string;
+  addressDetail: string;
+  buildingName: string;
+  profileImage: string;
+  politicalParty: string; // 議員用: 政党
+  pledge: string;         // 議員用: 公約・活動方針
+  shopPhoneNumber: string; // 加盟店用: 電話番号
+  shopIntroduction: string; // 加盟店用: 紹介
+}
+
 export default function SettingsPage() {
   const router = useRouter();
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
 
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   // アカウント種別 ('general': 一般, 'politician': 議員, 'shop': 加盟店)
-  const [accountType, setAccountType] = useState("general");
+  const [accountType, setAccountType] = useState<UserType>("general");
 
   // プロフィール画像の状態
-  const [originalFile, setOriginalFile] = useState(null);
-  const [avatarFile, setAvatarFile] = useState(null);
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
 
   // クロップ処理用状態
   const [isCropperOpen, setIsCropperOpen] = useState(false);
-  const [cropSrc, setCropSrc] = useState("");
+  const [cropSrc, setCropSrc] = useState<any>("");
   const [zoom, setZoom] = useState(1.0);
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [imgDisplaySize, setImgDisplaySize] = useState({ width: 0, height: 0 });
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
-  const [savedCropPosition, setSavedCropPosition] = useState(null);
+  const [savedCropPosition, setSavedCropPosition] = useState<any>(null);
 
   // フォームデータ
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormDataState>({
     lastName: "",
     firstName: "",
     lastNameKana: "",
@@ -76,10 +94,10 @@ export default function SettingsPage() {
     addressDetail: "",
     buildingName: "",
     profileImage: "",
-    politicalParty: "", // 議員用: 政党
-    pledge: "",         // 議員用: 公約・活動方針
-    shopPhoneNumber: "", // 加盟店用: 電話番号
-    shopIntroduction: "", // 加盟店用: 紹介
+    politicalParty: "",
+    pledge: "",
+    shopPhoneNumber: "",
+    shopIntroduction: "",
   });
 
   // 認証状態の監視 & Firestore情報の取得
@@ -94,7 +112,7 @@ export default function SettingsPage() {
               setAccountType(data.userType);
             }
 
-            const address = data.address || {};
+            const address = data.address || { postalCode: "", prefecture: "東京都", addressDetail: "", buildingName: "" };
             const profileImageMap = data.profileImage || {};
 
             let imageUrl = "";
@@ -102,8 +120,8 @@ export default function SettingsPage() {
             if (typeof profileImageMap === "string") {
               imageUrl = profileImageMap;
             } else if (profileImageMap && typeof profileImageMap === "object") {
-              imageUrl = profileImageMap.url || "";
-              cropPos = profileImageMap.cropPosition || null;
+              imageUrl = (profileImageMap as any).url || "";
+              cropPos = (profileImageMap as any).cropPosition || null;
             }
 
             // 生年月日のフォーマット表示 (YYYY年MM月DD日)
@@ -224,7 +242,7 @@ export default function SettingsPage() {
   };
 
   // ファイル選択変更時の処理（切り抜きモーダルを開く）
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith("image/")) {
@@ -234,15 +252,17 @@ export default function SettingsPage() {
       setOriginalFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
-        setCropSrc(event.target.result);
-        setIsCropperOpen(true);
+        if (event.target) {
+          setCropSrc(event.target.result);
+          setIsCropperOpen(true);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
   // 切り抜き範囲（200x200のサークル、オフセット40px）から画像がはみ出さないようにオフセットをクランプする関数
-  const clampOffset = (x, y, currentZoom) => {
+  const clampOffset = (x: number, y: number, currentZoom: number) => {
     const w = imgDisplaySize.width * currentZoom;
     const h = imgDisplaySize.height * currentZoom;
 
@@ -258,14 +278,15 @@ export default function SettingsPage() {
   };
 
   // ズーム変更時の処理
-  const handleZoomChange = (newZoom) => {
+  const handleZoomChange = (newZoom: number) => {
     setZoom(newZoom);
     setCropOffset((prev) => clampOffset(prev.x, prev.y, newZoom));
   };
 
   // 切り抜きモーダル内で画像読み込み完了時のサイズ設定
-  const handleImageLoad = (e) => {
-    const { naturalWidth, naturalHeight } = e.target;
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = e.target as HTMLImageElement;
+    const { naturalWidth, naturalHeight } = target;
     let w = 280;
     let h = 280;
 
@@ -286,7 +307,7 @@ export default function SettingsPage() {
   };
 
   // ドラッグ操作（マウス）
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
     dragStartRef.current = {
@@ -295,7 +316,7 @@ export default function SettingsPage() {
     };
   };
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     const rawX = e.clientX - dragStartRef.current.x;
     const rawY = e.clientY - dragStartRef.current.y;
@@ -307,7 +328,7 @@ export default function SettingsPage() {
   };
 
   // ドラッグ操作（タッチ）
-  const handleTouchStart = (e) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
       dragStartRef.current = {
@@ -317,7 +338,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleTouchMove = (e) => {
+  const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || e.touches.length !== 1) return;
     const rawX = e.touches[0].clientX - dragStartRef.current.x;
     const rawY = e.touches[0].clientY - dragStartRef.current.y;
@@ -338,6 +359,7 @@ export default function SettingsPage() {
       canvas.width = 400;
       canvas.height = 400;
       const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
       const scale = naturalSize.width / (imgDisplaySize.width * zoom);
       const sx = (40 - cropOffset.x) * scale;
@@ -371,7 +393,7 @@ export default function SettingsPage() {
   };
 
   // クロップ座標に基づくCSSスタイル生成
-  const getCroppedImgStyle = (cropPos, containerSize = 100) => {
+  const getCroppedImgStyle = (cropPos: any, containerSize = 100): React.CSSProperties => {
     if (!cropPos) return { width: "100%", height: "100%", objectFit: "cover" };
     const ratio = containerSize / 200;
     return {
@@ -385,7 +407,7 @@ export default function SettingsPage() {
   };
 
   // 設定保存処理
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // バリデーションチェック
@@ -418,7 +440,7 @@ export default function SettingsPage() {
         }
       }
 
-      const payload = {
+      const payload: Partial<UserProfile> = {
         lastName: formData.lastName,
         firstName: formData.firstName,
         lastNameKana: formData.lastNameKana,
@@ -454,7 +476,7 @@ export default function SettingsPage() {
       setTimeout(() => {
         setSuccessMsg("");
       }, 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Save profile error:", err);
       setError(err.message || "設定の保存に失敗しました。時間をおいてもう一度お試しください。");
       window.scrollTo({ top: 0, behavior: "smooth" });

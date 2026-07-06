@@ -30,7 +30,7 @@ const EMOJIS = [
 ];
 
 // 日本語のフォーマットヘルパー
-const formatTime = (date) => {
+const formatTime = (date: Date) => {
   return date.toLocaleTimeString("ja-JP", {
     hour: "2-digit",
     minute: "2-digit",
@@ -38,11 +38,11 @@ const formatTime = (date) => {
   });
 };
 
-const formatDate = (date) => {
+const formatDate = (date: Date) => {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 };
 
-const isImageExpired = (msg) => {
+const isImageExpired = (msg: any) => {
   if (msg.image_deleted) return true;
   if (!msg.image_url) return false;
   // 共有の絵文字画像は期限切れにしない
@@ -57,34 +57,34 @@ const isImageExpired = (msg) => {
 };
 
 export default function ChatPage() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
   // チャットスレッド一覧とメッセージ履歴
-  const [rooms, setRooms] = useState([]);
-  const [selectedRoomId, setSelectedRoomId] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
   
   // 絵文字ピッカーの表示状態
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const emojiPickerRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 取得した絵文字のURLキャッシュ
-  const [emojiUrls, setEmojiUrls] = useState({});
+  const [emojiUrls, setEmojiUrls] = useState<Record<string, string>>({});
 
   // 画像拡大表示用のURLステート
-  const [zoomImageUrl, setZoomImageUrl] = useState(null);
+  const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
 
   // スクロール用Ref
-  const messageLogRef = useRef(null);
+  const messageLogRef = useRef<HTMLDivElement>(null);
 
   // 絵文字ピッカーの外側をクリックしたときに閉じる
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
         setShowEmojiPicker(false);
       }
     }
@@ -127,7 +127,7 @@ export default function ChatPage() {
     );
 
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-      const dbRooms = [];
+      const dbRooms: any[] = [];
       querySnapshot.forEach((docSnap) => {
         dbRooms.push({
           id: docSnap.id,
@@ -144,7 +144,7 @@ export default function ChatPage() {
 
       const formattedRooms = await Promise.all(
         dbRooms.map(async (room) => {
-          const partnerUid = room.user_ids.find((id) => id !== currentUser.uid);
+          const partnerUid = room.user_ids.find((id: string) => id !== currentUser.uid);
           const partnerProfile = await getUserProfile(partnerUid);
           
           let lastMsgText = "メッセージはありません";
@@ -220,7 +220,7 @@ export default function ChatPage() {
 
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       // 相手からの未読メッセージがあればFirestore上で既読(read: true)にする
-      const batchUpdates = [];
+      const batchUpdates: Promise<void>[] = [];
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
         if (data.sender_id !== currentUser.uid && !data.read) {
@@ -238,7 +238,7 @@ export default function ChatPage() {
                 // Storageから削除
                 const fileRef = ref(storage, data.image_url);
                 await deleteObject(fileRef);
-              } catch (storageErr) {
+              } catch (storageErr: any) {
                 // すでに消去されている場合などは警告を出して続行
                 console.warn("Storage object already deleted or failed to delete:", storageErr.message);
               }
@@ -303,7 +303,7 @@ export default function ChatPage() {
   }, [messages]);
 
   // --- 4. メッセージの送信処理 ---
-  const handleSend = async (e) => {
+  const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (isSending || !inputText.trim() || !selectedRoomId || !currentUser) return;
 
@@ -331,7 +331,7 @@ export default function ChatPage() {
     }
   };
 
-  const handleSendEmoji = async (emoji) => {
+  const handleSendEmoji = async (emoji: string) => {
     setShowEmojiPicker(false);
     if (!selectedRoomId || !currentUser) return;
 
@@ -366,7 +366,7 @@ export default function ChatPage() {
     }
   };
 
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selectedRoomId || !currentUser) return;
     
@@ -397,7 +397,7 @@ export default function ChatPage() {
   };
 
   // 入力フォームでのEnterキー送信対応（Shift+Enterは改行、IME確定時のEnterは送信しない）
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.nativeEvent.isComposing) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -582,7 +582,7 @@ export default function ChatPage() {
                                   onClick={() => setZoomImageUrl(msg.image_url)}
                                 >
                                   <img
-                                    src={msg.image_url}
+                                    src={msg.image_url || ""}
                                     alt="添付画像"
                                     className={`${styles.messageImage} ${styles.noSelectImage}`}
                                     onContextMenu={(e) => e.preventDefault()}

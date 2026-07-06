@@ -43,7 +43,7 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError("メールアドレスとパスワードを入力してください。");
@@ -60,12 +60,12 @@ export default function LoginPage() {
 
       // セッションCookieを作成
       const expireTime = 60 * 60 * 24; // 1日
-      document.cookie = `session=${encodeURIComponent(user.email)}; path=/; max-age=${expireTime}; SameSite=Lax;`;
+      document.cookie = `session=${encodeURIComponent(user.email || "")}; path=/; max-age=${expireTime}; SameSite=Lax;`;
 
       // 遷移してリフレッシュ
       router.push("/");
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Login error:", err);
       // エラーハンドリング
       if (
@@ -84,7 +84,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleSocialLogin = async (providerName) => {
+  const handleSocialLogin = async (providerName: "google" | "apple") => {
     setIsSubmitting(true);
     setError("");
     const provider = providerName === "google" ? googleProvider : appleProvider;
@@ -101,7 +101,7 @@ export default function LoginPage() {
       // 遷移してリフレッシュ
       router.push("/");
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Social login error:", err);
       if (err.code !== "auth/popup-closed-by-user") {
         setError(`${providerName === "google" ? "Google" : "Apple"}でのログインに失敗しました。`);
@@ -119,7 +119,6 @@ export default function LoginPage() {
           <img src="/logo.png" alt="マチアプ" className={styles.logoImage} />
           <span className={styles.logoText}>マチアプ</span>
         </div>
-
       </header>
 
       {/* メインコンテンツ */}

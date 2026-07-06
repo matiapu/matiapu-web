@@ -54,26 +54,28 @@ export default function StoreSignupPage() {
 
   // メール認証の自動検知（ポーリング）
   useEffect(() => {
-    let intervalId;
+    let intervalId: NodeJS.Timeout | undefined;
     if (step === "verify" && auth.currentUser) {
       intervalId = setInterval(async () => {
         try {
-          // 現在のユーザー情報をリロードして最新の認証状態（emailVerified）を取得
-          await auth.currentUser.reload();
-          
-          if (auth.currentUser.emailVerified) {
-            clearInterval(intervalId);
+          if (auth.currentUser) {
+            // 現在のユーザー情報をリロードして最新の認証状態（emailVerified）を取得
+            await auth.currentUser.reload();
             
-            // 1. Firestoreのステータスを更新（isVerified = true）
-            await updateUserProfile(auth.currentUser.uid, { isVerified: true });
-            
-            // 2. セッションCookieを作成
-            const expireTime = 60 * 60 * 24; // 1日
-            document.cookie = `session=${encodeURIComponent(auth.currentUser.email)}; path=/; max-age=${expireTime}; SameSite=Lax;`;
-            
-            // 3. 店舗用の詳細登録ページへ遷移
-            router.push("/signup/store/details");
-            router.refresh();
+            if (auth.currentUser.emailVerified) {
+              if (intervalId) clearInterval(intervalId);
+              
+              // 1. Firestoreのステータスを更新（isVerified = true）
+              await updateUserProfile(auth.currentUser.uid, { isVerified: true });
+              
+              // 2. セッションCookieを作成
+              const expireTime = 60 * 60 * 24; // 1日
+              document.cookie = `session=${encodeURIComponent(auth.currentUser.email || "")}; path=/; max-age=${expireTime}; SameSite=Lax;`;
+              
+              // 3. 店舗用の詳細登録ページへ遷移
+              router.push("/signup/store/details");
+              router.refresh();
+            }
           }
         } catch (err) {
           console.error("Poller error reloading user:", err);
@@ -87,7 +89,7 @@ export default function StoreSignupPage() {
   }, [step, router]);
 
   // アカウント新規登録処理
-  const handleSignupSubmit = async (e) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError("すべての項目を入力してください。");
@@ -128,7 +130,7 @@ export default function StoreSignupPage() {
       // 4. メール認証待機ステップへ移行
       setStep("verify");
       setInfoMessage("確認メールを送信しました。メールボックスを確認してください。");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Signup error:", err);
       if (err.code === "auth/email-already-in-use") {
         setError("このメールアドレスはすでに登録されています。");
@@ -161,7 +163,7 @@ export default function StoreSignupPage() {
 
         // 2. セッションCookieを作成
         const expireTime = 60 * 60 * 24; // 1日
-        document.cookie = `session=${encodeURIComponent(auth.currentUser.email)}; path=/; max-age=${expireTime}; SameSite=Lax;`;
+        document.cookie = `session=${encodeURIComponent(auth.currentUser.email || "")}; path=/; max-age=${expireTime}; SameSite=Lax;`;
 
         // 3. 店舗用詳細登録ページへ遷移
         router.push("/signup/store/details");
@@ -187,7 +189,7 @@ export default function StoreSignupPage() {
     try {
       await sendEmailVerification(auth.currentUser);
       setInfoMessage("確認メールを再送信しました。メールボックスをご確認ください。");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Resend email error:", err);
       if (err.code === "auth/too-many-requests") {
         setError("送信リクエストが多すぎます。少し時間をおいてから再試行してください。");

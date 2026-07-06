@@ -14,23 +14,31 @@ import { getUserProfile } from '@/src/firebase/userDb';
 import { hasLikedPost, likePost, unlikePost } from '@/src/firebase/likeDb';
 import { recordViewHistory } from '@/src/firebase/historyDb';
 import { auth } from '@/src/firebase/firebase';
-import { getPost } from '@/src/firebase/postDb';
-import { getUserProfile } from '@/src/firebase/userDb';
+import { POSTS, Post as UIPost } from '@/data/posts';
 
 // Re-export POSTS to maintain backward compatibility with other files importing it from here
 export { POSTS };
 
-function Page({ params }) {
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+interface LocalUIPost extends UIPost {
+  isLiked: boolean;
+  isDisliked: boolean;
+}
+
+function Page({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
 
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState<LocalUIPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isCompleted, setIsCompleted] = useState(false);
   const [commentRefreshCount, setCommentRefreshCount] = useState(0);
-  const scrollContainerRef = useRef(null);
-  const cardRefs = useRef({});
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // 1. データベースからデータをフェッチ & 必要に応じて自動シードを実行
   useEffect(() => {
@@ -46,8 +54,8 @@ function Page({ params }) {
         const fetchedPosts = await getPosts();
         
         // 各投稿の author_uid に対応するユーザープロファイル情報を取得
-        const uids = Array.from(new Set(fetchedPosts.map(p => p.author_uid).filter(Boolean)));
-        const userProfiles = {};
+        const uids = Array.from(new Set(fetchedPosts.map(p => p.author_uid).filter(Boolean))) as string[];
+        const userProfiles: Record<string, any> = {};
         
         await Promise.all(
           uids.map(async (uid) => {
@@ -69,12 +77,14 @@ function Page({ params }) {
             const user = userProfiles[p.author_uid] || {};
             let isLiked = false;
             try {
-              isLiked = await hasLikedPost(p.id, uid);
+              if (p.id) {
+                isLiked = await hasLikedPost(p.id, uid);
+              }
             } catch (e) {
               console.error("Failed to check if post is liked:", e);
             }
             return {
-              id: p.id,
+              id: Number(p.id) || 0,
               name: user.displayName || user.nickname || "匿名ユーザー",
               userIcon: user.profileImage || "/user_Icon/user_icon1.jpg",
               title: p.title || "無題の投稿",
@@ -82,7 +92,10 @@ function Page({ params }) {
               image: p.image_url || "/post_image/post_image1.jpg",
               createAt: p.created_at ? new Date(p.created_at.seconds * 1000).toLocaleDateString() : "日付なし",
               content: p.content_text || "",
-              likes: p.likes || "0",
+              likes: String(p.likes || "0"),
+              commentID: "",
+              postID: p.id || "",
+              userID: p.author_uid || "",
               questionText: p.questionText || null,
               answerText: p.answerText || null,
               isLiked: isLiked,
@@ -105,7 +118,7 @@ function Page({ params }) {
   useEffect(() => {
     if (loading || posts.length === 0) return;
 
-    const index = posts.findIndex(p => p.id === id);
+    const index = posts.findIndex(p => String(p.id) === id || p.postID === id);
     if (index !== -1) {
       setActiveIndex(index);
       // スクロールコンテナが描画されるのを少し待ってからスクロール位置を調整
@@ -145,7 +158,7 @@ function Page({ params }) {
   };
 
   // 4. 指定した投稿へスムーズスクロール
-  const scrollToPost = (index) => {
+  const scrollToPost = (index: number) => {
     if (index >= 0 && index < posts.length) {
       const container = scrollContainerRef.current;
       const targetEl = cardRefs.current[posts[index].id];
@@ -166,27 +179,11 @@ function Page({ params }) {
       const activePost = posts[activeIndex];
       const uid = auth.currentUser?.uid || "user1";
       
-      recordViewHistory(activePost.id, uid).catch(err => {
+      recordViewHistory(activePost.postID, uid).catch(err => {
         console.error("Error recording view history:", err);
       });
     }
   }, [activeIndex, posts]);
-
-  const handleNext = () => {
-    if (activeIndex < posts.length - 1) {
-      scrollToPost(activeIndex + 1);
-    } else {
-      setIsCompleted(true);
-    }
-    // If it's a DB post, since we don't have a simple sequence, mark completed
-    setIsCompleted(true);
-  };
-
-  const handlePrevious = () => {
-    if (activeIndex > 0) {
-      scrollToPost(activeIndex - 1);
-    }
-  };
 
   // いいねのアクション（遷移なし）
   const handleLike = async () => {
@@ -201,7 +198,7 @@ function Page({ params }) {
         return {
           ...p,
           isLiked: newLiked,
-          likes: newLiked ? Number(p.likes) + 1 : Math.max(0, Number(p.likes) - 1),
+          likes: newLiked ? String(Number(p.likes) + 1) : String(Math.max(0, Number(p.likes) - 1)),
           isDisliked: newLiked ? false : p.isDisliked // いいねした場合は「いまいち」を解除
         };
       }
@@ -210,9 +207,9 @@ function Page({ params }) {
 
     try {
       if (newLiked) {
-        await likePost(currentPost.id, uid);
+        await likePost(currentPost.postID, uid);
       } else {
-        await unlikePost(currentPost.id, uid);
+        await unlikePost(currentPost.postID, uid);
       }
     } catch (err) {
       console.error("Failed to toggle like in Firestore:", err);
@@ -243,7 +240,7 @@ function Page({ params }) {
           ...p,
           isDisliked: newDisliked,
           isLiked: newDisliked ? false : p.isLiked, // いまいちした場合は「いいね」を解除
-          likes: (newDisliked && p.isLiked) ? Math.max(0, Number(p.likes) - 1) : p.likes
+          likes: (newDisliked && p.isLiked) ? String(Math.max(0, Number(p.likes) - 1)) : p.likes
         };
       }
       return p;
@@ -252,7 +249,7 @@ function Page({ params }) {
     // もともといいねしていた場合は、いまいちの選択に伴いFirestore側のいいねを解除
     if (newDisliked && currentPost.isLiked) {
       const uid = auth.currentUser?.uid || "user1";
-      unlikePost(currentPost.id, uid).catch(e => console.error("Failed to unlike on dislike:", e));
+      unlikePost(currentPost.postID, uid).catch(e => console.error("Failed to unlike on dislike:", e));
     }
   };
 
@@ -278,7 +275,7 @@ function Page({ params }) {
           <div 
             key={post.id} 
             className={styles.cardWrapper}
-            ref={el => cardRefs.current[post.id] = el}
+            ref={el => { cardRefs.current[post.id] = el; }}
           >
             {/* 左矢印ボタン (最初の投稿以外に表示) */}
             {idx > 0 && (
@@ -310,7 +307,7 @@ function Page({ params }) {
       {/* アクションエリア */}
       <div className={styles.Comment_NiceBadButton}>
         <CommentInput 
-          postId={currentPost.id} 
+          postId={currentPost.postID} 
           onCommentSubmitted={() => setCommentRefreshCount(prev => prev + 1)} 
         />
         <BadButton onClick={handleDislike} isDisliked={currentPost.isDisliked} />
@@ -318,7 +315,7 @@ function Page({ params }) {
       </div>
 
       {/* 現在アクティブな投稿に対応するコメントを表示 */}
-      <CommentSection key={`${currentPost.id}-${commentRefreshCount}`} postId={currentPost.id} />
+      <CommentSection key={`${currentPost.postID}-${commentRefreshCount}`} postId={currentPost.postID} />
     </div>
   );
 }

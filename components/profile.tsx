@@ -6,24 +6,24 @@ import UserIcon from './UserIcon';
 import PostImage from './PostImage';
 import styles from '@/components/profile.module.css';
 import { auth } from '@/src/firebase/firebase';
-import { getUserProfile } from '@/src/firebase/userDb';
-import { getPosts, getPost } from '@/src/firebase/postDb';
+import { getUserProfile, UserProfile } from '@/src/firebase/userDb';
+import { getPosts, getPost, Post as DbPost } from '@/src/firebase/postDb';
 import { getLikedPostIdsForUser } from '@/src/firebase/likeDb';
 import { getViewHistoryForUser } from '@/src/firebase/historyDb';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faHeart, faImage, faHistory } from '@fortawesome/free-solid-svg-icons';
-import { POSTS } from '@/data/posts';
+import { POSTS, Post as UIPost } from '@/data/posts';
 
 function Profile() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [profileData, setProfileData] = useState(null);
-  const [userPosts, setUserPosts] = useState([]);
-  const [likedPosts, setLikedPosts] = useState([]);
-  const [historyPosts, setHistoryPosts] = useState([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
+  const [userPosts, setUserPosts] = useState<UIPost[]>([]);
+  const [likedPosts, setLikedPosts] = useState<UIPost[]>([]);
+  const [historyPosts, setHistoryPosts] = useState<(UIPost & { viewedAt?: any })[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("posts"); // "posts" | "likes" | "history"
+  const [activeTab, setActiveTab] = useState<"posts" | "likes" | "history">("posts");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -31,9 +31,9 @@ function Profile() {
         setUser(currentUser);
         try {
           // Helper function to format other users' posts
-          const formatPostData = async (p, fallbackIdx) => {
+          const formatPostData = async (p: DbPost | null | undefined, fallbackIdx: number): Promise<UIPost | null> => {
             if (!p) return null;
-            let authorData = null;
+            let authorData: UserProfile | null = null;
             try {
               if (p.author_uid) {
                 authorData = await getUserProfile(p.author_uid);
@@ -44,7 +44,7 @@ function Profile() {
             
             const contentText = p.content_text || "";
             return {
-              id: p.id || `post_${fallbackIdx}`,
+              id: Number(p.id) || fallbackIdx,
               name: authorData?.displayName || authorData?.nickname || "ユーザー",
               address: authorData?.address ? `${authorData.address.prefecture}${authorData.address.addressDetail}` : "",
               userIcon: authorData?.profileImage || "/user_Icon/user_icon1.jpg",
@@ -53,12 +53,17 @@ function Profile() {
               image: p.image_url || "/post_image/post_image1.jpg",
               createAt: p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString('ja-JP') : new Date().toLocaleDateString('ja-JP'),
               content: contentText,
-              likes: p.likes || "0",
+              likes: String(p.likes || "0"),
+              commentID: "",
+              postID: p.id || "",
+              userID: p.author_uid || "",
+              questionText: p.questionText || "",
+              answerText: p.answerText || null,
             };
           };
 
           // Fetch Firestore user profile
-          let data = null;
+          let data: UserProfile | null = null;
           try {
             data = await getUserProfile(currentUser.uid);
             setProfileData(data);
@@ -74,7 +79,7 @@ function Profile() {
             const formattedPosts = posts.map((p, idx) => {
               const contentText = p.content_text || "";
               return {
-                id: p.id || `post_${idx}`,
+                id: Number(p.id) || idx,
                 name: data?.displayName || data?.nickname || currentUser.displayName || "ユーザー",
                 address: data?.address ? `${data.address.prefecture}${data.address.addressDetail}` : "",
                 userIcon: data?.profileImage || "/user_Icon/user_icon1.jpg",
@@ -83,7 +88,12 @@ function Profile() {
                 image: p.image_url || "/post_image/post_image1.jpg",
                 createAt: p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString('ja-JP') : new Date().toLocaleDateString('ja-JP'),
                 content: contentText,
-                likes: p.likes || "0",
+                likes: String(p.likes || "0"),
+                commentID: "",
+                postID: p.id || "",
+                userID: p.author_uid || "",
+                questionText: p.questionText || "",
+                answerText: p.answerText || null,
               };
             });
             console.log("[Antigravity] Formatted user's own posts:", formattedPosts);
@@ -112,7 +122,7 @@ function Profile() {
                 }
               })
             );
-            const finalLikes = likedPostsFetched.filter(Boolean);
+            const finalLikes = likedPostsFetched.filter((p): p is UIPost => p !== null);
             console.log("[Antigravity] Final liked posts formatted:", finalLikes);
             setLikedPosts(finalLikes);
           } catch (err) {
@@ -133,9 +143,12 @@ function Profile() {
                   }
                   const formatted = await formatPostData(p, idx);
                   if (formatted) {
-                    formatted.viewedAt = h.viewed_at;
+                    return {
+                      ...formatted,
+                      viewedAt: h.viewed_at,
+                    };
                   }
-                  return formatted;
+                  return null;
                 } catch (e) {
                   console.error(`[Antigravity] Error fetching individual history post ${h.post_id}:`, e);
                   return null;
@@ -143,7 +156,7 @@ function Profile() {
               })
             );
             const sortedHistory = historyPostsFetched
-              .filter(Boolean)
+              .filter((p): p is (UIPost & { viewedAt: any }) => p !== null)
               .sort((a, b) => b.viewedAt.toMillis() - a.viewedAt.toMillis());
             console.log("[Antigravity] Sorted history posts formatted:", sortedHistory);
             setHistoryPosts(sortedHistory);
@@ -185,28 +198,14 @@ function Profile() {
     ? (profileData?.displayName || profileData?.nickname || `${profileData?.lastName || ""} ${profileData?.firstName || ""}`.trim() || "ユーザー")
     : "佐々木 太郎";
   
-  const userType = isLive && profileData ? profileData.userType : "general"; // general | politician | shop
+  const userType = isLive && profileData ? (profileData.userType || "general") : "general"; // general | politician | shop
 
   const formattedAddress = isLive && profileData?.address
     ? `${profileData.address.prefecture} ${profileData.address.addressDetail}`
     : "東京都新宿区";
 
-  const email = isLive ? (profileData?.email || user.email) : "sasaki.taro@example.com";
+  const email = isLive ? (profileData?.email || user?.email || "") : "sasaki.taro@example.com";
   const avatarUrl = isLive && profileData?.profileImage ? profileData.profileImage : "/user_Icon/user_icon1.jpg";
-
-  // Bio content based on user type
-  let bioContent = "";
-  if (isLive) {
-    if (userType === "politician") {
-      bioContent = profileData?.pledge || "活動方針や公約が未設定です。";
-    } else if (userType === "shop") {
-      bioContent = profileData?.shopIntroduction || "店舗紹介が未設定です。";
-    } else {
-      bioContent = "街アプを利用して、地域の課題解決やコミュニティ活性化に貢献しています。";
-    }
-  } else {
-    bioContent = "街アプを利用して、地域の課題解決やコミュニティ活性化に貢献しています。";
-  }
 
   // Display posts (live posts or mock posts fallback)
   const postsToShow = isLive ? userPosts : POSTS;
@@ -264,10 +263,6 @@ function Profile() {
               </div>
             )}
           </div>
-
-
-
-
 
           {/* Edit Profile Action */}
           <div className={styles.actionButtons}>

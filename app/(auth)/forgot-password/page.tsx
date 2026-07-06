@@ -4,7 +4,6 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faPaperPlane, faArrowLeft, faLock, faSpinner } from "@fortawesome/free-solid-svg-icons";
-import Link from "next/link";
 import styles from "./ForgotPassword.module.css";
 
 // Firebase Auth Operations
@@ -28,7 +27,7 @@ function ForgotPasswordForm() {
     }
   }, [searchParams]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       setError("メールアドレスを入力してください。");
@@ -42,7 +41,7 @@ function ForgotPasswordForm() {
     try {
       await sendPasswordResetEmail(auth, email);
       setMessage("パスワード再設定用のメールを送信しました。メールボックスを確認してください。");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Password reset error:", err);
       if (err.code === "auth/user-not-found" || err.code === "auth/invalid-email") {
         setError("メールアドレスが正しくないか、登録されていません。");

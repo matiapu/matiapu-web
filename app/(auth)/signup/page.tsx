@@ -58,26 +58,28 @@ export default function SignupPage() {
 
   // メール認証の自動検知（ポーリング）
   useEffect(() => {
-    let intervalId;
+    let intervalId: NodeJS.Timeout | undefined;
     if (step === "verify" && auth.currentUser) {
       intervalId = setInterval(async () => {
         try {
-          // 現在のユーザー情報をリロードして最新の認証状態（emailVerified）を取得
-          await auth.currentUser.reload();
-          
-          if (auth.currentUser.emailVerified) {
-            clearInterval(intervalId);
+          if (auth.currentUser) {
+            // 現在のユーザー情報をリロードして最新の認証状態（emailVerified）を取得
+            await auth.currentUser.reload();
             
-            // 1. Firestoreのステータスを更新（isVerified = true）
-            await updateUserProfile(auth.currentUser.uid, { isVerified: true });
-            
-            // 2. セッションCookieを作成
-            const expireTime = 60 * 60 * 24; // 1日
-            document.cookie = `session=${encodeURIComponent(auth.currentUser.email)}; path=/; max-age=${expireTime}; SameSite=Lax;`;
-            
-            // 3. 詳細登録ページへ遷移
-            router.push("/signup/details");
-            router.refresh();
+            if (auth.currentUser.emailVerified) {
+              if (intervalId) clearInterval(intervalId);
+              
+              // 1. Firestoreのステータスを更新（isVerified = true）
+              await updateUserProfile(auth.currentUser.uid, { isVerified: true });
+              
+              // 2. セッションCookieを作成
+              const expireTime = 60 * 60 * 24; // 1日
+              document.cookie = `session=${encodeURIComponent(auth.currentUser.email || "")}; path=/; max-age=${expireTime}; SameSite=Lax;`;
+              
+              // 3. 詳細登録ページへ遷移
+              router.push("/signup/details");
+              router.refresh();
+            }
           }
         } catch (err) {
           console.error("Poller error reloading user:", err);
@@ -91,14 +93,14 @@ export default function SignupPage() {
   }, [step, router]);
 
   // ひらがなを全角カタカナに変換するヘルパー関数
-  const toKatakana = (str) => {
+  const toKatakana = (str: string) => {
     return str.replace(/[\u3041-\u3096]/g, (match) => {
       return String.fromCharCode(match.charCodeAt(0) + 0x60);
     });
   };
 
   // お名前（姓）入力変更時のハンドラ
-  const handleLastNameChange = (val) => {
+  const handleLastNameChange = (val: string) => {
     setLastName(val);
     
     // 入力値が「ひらがな・カタカナ・長音・スペース」のみの場合にフリガナへ自動コピー
@@ -109,7 +111,7 @@ export default function SignupPage() {
   };
 
   // お名前（名）入力変更時のハンドラ
-  const handleFirstNameChange = (val) => {
+  const handleFirstNameChange = (val: string) => {
     setFirstName(val);
     
     // 入力値が「ひらがな・カタカナ・長音・スペース」のみの場合にフリガナへ自動コピー
@@ -120,7 +122,7 @@ export default function SignupPage() {
   };
 
   // アカウント新規登録処理
-  const handleSignupSubmit = async (e) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!lastName || !firstName || !lastNameKana || !firstNameKana || !email || !password) {
       setError("すべての項目を入力してください。");
@@ -169,7 +171,7 @@ export default function SignupPage() {
       // 5. メール認証待機ステップへ移行
       setStep("verify");
       setInfoMessage("確認メールを送信しました。メールボックスを確認してください。");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Signup error:", err);
       if (err.code === "auth/email-already-in-use") {
         setError("このメールアドレスはすでに登録されています。");
@@ -202,7 +204,7 @@ export default function SignupPage() {
 
         // 2. セッションCookieを作成
         const expireTime = 60 * 60 * 24; // 1日
-        document.cookie = `session=${encodeURIComponent(auth.currentUser.email)}; path=/; max-age=${expireTime}; SameSite=Lax;`;
+        document.cookie = `session=${encodeURIComponent(auth.currentUser.email || "")}; path=/; max-age=${expireTime}; SameSite=Lax;`;
 
         // 3. 詳細登録ページへ遷移
         router.push("/signup/details");
@@ -228,7 +230,7 @@ export default function SignupPage() {
     try {
       await sendEmailVerification(auth.currentUser);
       setInfoMessage("確認メールを再送信しました。メールボックスをご確認ください。");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Resend email error:", err);
       if (err.code === "auth/too-many-requests") {
         setError("送信リクエストが多すぎます。少し時間をおいてから再試行してください。");
@@ -254,7 +256,7 @@ export default function SignupPage() {
   };
 
   // ソーシャルサインアップ（Google/Apple）
-  const handleSocialSignup = async (providerName) => {
+  const handleSocialSignup = async (providerName: "google" | "apple") => {
     setIsSubmitting(true);
     setError("");
     setInfoMessage("");
@@ -286,7 +288,7 @@ export default function SignupPage() {
       // 別の詳細登録ページへ遷移
       router.push("/signup/details");
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Social signup error:", err);
       if (err.code !== "auth/popup-closed-by-user") {
         setError(`${providerName === "google" ? "Google" : "Apple"}での登録に失敗しました。`);
@@ -487,7 +489,7 @@ export default function SignupPage() {
                 </div>
                 <h1 className={styles.title}>メール認証を実施中</h1>
                 <p className={styles.subtitle}>
-                  ご登録のメールアドレス宛に確認メールを送信しました。<br />
+                  ご登録 of メールアドレス宛に確認メールを送信しました。<br />
                   メールに記載されているリンクをクリックして<br />
                   認証を完了してください。
                 </p>
