@@ -421,9 +421,10 @@ export default function StoreSignupDetailsPage() {
             contentType: "image/jpeg",
           });
           imageUrl = await getDownloadURL(uploadResult.ref);
-        } catch (imgErr: any) {
+        } catch (imgErr) {
           console.error("Profile image upload failed:", imgErr);
-          throw new Error("店舗画像のアップロードに失敗しました: " + imgErr.message);
+          const message = imgErr instanceof Error ? imgErr.message : String(imgErr);
+          throw new Error("店舗画像のアップロードに失敗しました: " + message);
         }
       }
 
@@ -431,12 +432,13 @@ export default function StoreSignupDetailsPage() {
       if (newPassword !== "") {
         try {
           await updatePassword(currentUser, newPassword);
-        } catch (passErr: any) {
+        } catch (passErr) {
           console.error("Password update failed:", passErr);
-          if (passErr.code === "auth/requires-recent-login") {
+          const firebaseError = passErr as { code?: string; message?: string };
+          if (firebaseError.code === "auth/requires-recent-login") {
             throw new Error("セキュリティ確保のため、パスワード変更には再ログインが必要です。一度ログアウトし、再ログインしてからお試しください。");
           }
-          throw new Error("パスワードの変更に失敗しました: " + passErr.message);
+          throw new Error("パスワードの変更に失敗しました: " + (firebaseError.message || String(passErr)));
         }
       }
 
@@ -466,9 +468,10 @@ export default function StoreSignupDetailsPage() {
 
       // 完了画面へ
       setStep(3);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Submit profile error:", err);
-      setError(err.message || "店舗情報の登録に失敗しました。お手数ですが時間をおいて再度お試しください。");
+      const message = err instanceof Error ? err.message : "店舗情報の登録に失敗しました。お手数ですが時間をおいて再度お試しください。";
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }

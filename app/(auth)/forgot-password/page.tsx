@@ -50,9 +50,10 @@ function ForgotPasswordForm() {
     try {
       await sendPasswordResetEmail(auth, email);
       setMessage("パスワード再設定用のメールを送信しました。メールボックスを確認してください。");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Password reset error:", err);
-      if (err.code === "auth/user-not-found" || err.code === "auth/invalid-email") {
+      const firebaseError = err as { code?: string };
+      if (firebaseError.code === "auth/user-not-found" || firebaseError.code === "auth/invalid-email") {
         setError("メールアドレスが正しくないか、登録されていません。");
       } else {
         setError("メールの送信に失敗しました。入力内容をお確かめください。");

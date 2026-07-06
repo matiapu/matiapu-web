@@ -175,13 +175,14 @@ export default function SignupPage() {
       // 5. メール認証待機ステップへ移行
       setStep("verify");
       setInfoMessage("確認メールを送信しました。メールボックスを確認してください。");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Signup error:", err);
-      if (err.code === "auth/email-already-in-use") {
+      const firebaseError = err as { code?: string };
+      if (firebaseError.code === "auth/email-already-in-use") {
         setError("このメールアドレスはすでに登録されています。");
-      } else if (err.code === "auth/invalid-email") {
+      } else if (firebaseError.code === "auth/invalid-email") {
         setError("メールアドレスの形式が正しくありません。");
-      } else if (err.code === "auth/weak-password") {
+      } else if (firebaseError.code === "auth/weak-password") {
         setError("パスワードが弱すぎます。8文字以上の英数字にしてください。");
       } else {
         setError("登録に失敗しました。入力内容を確認してください。");
@@ -234,9 +235,10 @@ export default function SignupPage() {
     try {
       await sendEmailVerification(auth.currentUser);
       setInfoMessage("確認メールを再送信しました。メールボックスをご確認ください。");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Resend email error:", err);
-      if (err.code === "auth/too-many-requests") {
+      const firebaseError = err as { code?: string };
+      if (firebaseError.code === "auth/too-many-requests") {
         setError("送信リクエストが多すぎます。少し時間をおいてから再試行してください。");
       } else {
         setError("メールの再送信に失敗しました。");
@@ -292,9 +294,10 @@ export default function SignupPage() {
       // 別の詳細登録ページへ遷移
       router.push("/signup/details");
       router.refresh();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Social signup error:", err);
-      if (err.code !== "auth/popup-closed-by-user") {
+      const firebaseError = err as { code?: string };
+      if (firebaseError.code !== "auth/popup-closed-by-user") {
         setError(`${providerName === "google" ? "Google" : "Apple"}での登録に失敗しました。`);
       }
     } finally {

@@ -301,10 +301,11 @@ export async function GET(request: Request) {
       registeredCount
     });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error("Error syncing disasters:", err);
+    const errorMsg = err instanceof Error ? err.message : "Unknown error occurred";
     return NextResponse.json(
-      { success: false, error: err.message || "Unknown error occurred" },
+      { success: false, error: errorMsg },
       { status: 500 }
     );
   }

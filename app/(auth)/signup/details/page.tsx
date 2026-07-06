@@ -509,9 +509,10 @@ export default function SignupDetailsPage() {
             contentType: "image/jpeg",
           });
           imageUrl = await getDownloadURL(uploadResult.ref);
-        } catch (imgErr: any) {
+        } catch (imgErr) {
           console.error("Profile image upload failed:", imgErr);
-          throw new Error("プロフィールの画像のアップロードに失敗しました: " + imgErr.message);
+          const message = imgErr instanceof Error ? imgErr.message : String(imgErr);
+          throw new Error("プロフィールの画像のアップロードに失敗しました: " + message);
         }
       }
 
@@ -553,9 +554,10 @@ export default function SignupDetailsPage() {
 
       // 登録完了画面（Step 3）へ遷移
       setStep(3);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Submit profile error:", err);
-      setError(err.message || "情報の登録に失敗しました。時間をおいてもう一度お試しください。");
+      const message = err instanceof Error ? err.message : "情報の登録に失敗しました。時間をおいてもう一度お試しください。";
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }

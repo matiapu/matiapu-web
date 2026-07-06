@@ -242,9 +242,10 @@ export default function ChatPage() {
                 // Storageから削除
                 const fileRef = ref(storage, data.image_url);
                 await deleteObject(fileRef);
-              } catch (storageErr: any) {
+              } catch (storageErr) {
                 // すでに消去されている場合などは警告を出して続行
-                console.warn("Storage object already deleted or failed to delete:", storageErr.message);
+                const message = storageErr instanceof Error ? storageErr.message : String(storageErr);
+                console.warn("Storage object already deleted or failed to delete:", message);
               }
               try {
                 // Firestoreを更新

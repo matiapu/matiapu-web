@@ -476,9 +476,10 @@ export default function SettingsPage() {
       setTimeout(() => {
         setSuccessMsg("");
       }, 3000);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Save profile error:", err);
-      setError(err.message || "設定の保存に失敗しました。時間をおいてもう一度お試しください。");
+      const message = err instanceof Error ? err.message : "設定の保存に失敗しました。時間をおいてもう一度お試しください。";
+      setError(message);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setIsSubmitting(false);

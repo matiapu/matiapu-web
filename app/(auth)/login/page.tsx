@@ -71,16 +71,17 @@ export default function LoginPage() {
       // 遷移してリフレッシュ
       router.push("/");
       router.refresh();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Login error:", err);
+      const firebaseError = err as { code?: string };
       // エラーハンドリング
       if (
-        err.code === "auth/invalid-credential" || 
-        err.code === "auth/user-not-found" || 
-        err.code === "auth/wrong-password"
+        firebaseError.code === "auth/invalid-credential" || 
+        firebaseError.code === "auth/user-not-found" || 
+        firebaseError.code === "auth/wrong-password"
       ) {
         setError("メールアドレスまたはパスワードが正しくありません。");
-      } else if (err.code === "auth/too-many-requests") {
+      } else if (firebaseError.code === "auth/too-many-requests") {
         setError("ログイン試行が多すぎます。しばらく経ってから再試行してください。");
       } else {
         setError("ログインに失敗しました。通信状況などを確認してください。");
@@ -107,9 +108,10 @@ export default function LoginPage() {
       // 遷移してリフレッシュ
       router.push("/");
       router.refresh();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Social login error:", err);
-      if (err.code !== "auth/popup-closed-by-user") {
+      const firebaseError = err as { code?: string };
+      if (firebaseError.code !== "auth/popup-closed-by-user") {
         setError(`${providerName === "google" ? "Google" : "Apple"}でのログインに失敗しました。`);
       }
     } finally {
