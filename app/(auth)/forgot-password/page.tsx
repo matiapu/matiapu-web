@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -21,9 +22,17 @@ function ForgotPasswordForm() {
 
   // クエリパラメータからメールアドレスを自動入力
   useEffect(() => {
+    // URLに ?email=... というパラメータが存在しない場合、nullを返すやつ
     const emailParam = searchParams.get("email");
+
+    // useEffectは何か変化があると実行されてしまうので2回実行されるのを防止
+    // emailParam が null でなければ実行してOK！
     if (emailParam) {
-      setEmail(decodeURIComponent(emailParam));
+      const decoded = decodeURIComponent(emailParam);
+      const timer = setTimeout(() => {
+        setEmail(decoded);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [searchParams]);
 
@@ -57,7 +66,7 @@ function ForgotPasswordForm() {
     <div className={styles.circleCard}>
       {/* ロゴサークル */}
       <div className={styles.logoCircle}>
-        <img src="/logo.png" alt="マチアプ" className={styles.logoImage} />
+        <Image src="/logo.png" alt="マチアプ" className={styles.logoImage} width={48} height={48} />
       </div>
       <p className={styles.logoText}>マチアプ</p>
 
