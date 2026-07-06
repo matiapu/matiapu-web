@@ -530,6 +530,7 @@ export default function SettingsPage() {
             <div className={styles.avatarWrapper} onClick={handleAvatarClick}>
               <div className={styles.avatarCircle}>
                 {avatarPreview ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={avatarPreview}
                     alt="プロフィール画像"
@@ -983,6 +984,7 @@ export default function SettingsPage() {
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={cropSrc}
                 alt="Crop Target"

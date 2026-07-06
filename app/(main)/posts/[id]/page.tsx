@@ -117,9 +117,11 @@ function Page({ params }: PageProps) {
 
     const index = posts.findIndex(p => String(p.id) === id || p.postID === id);
     if (index !== -1) {
-      setActiveIndex(index);
+      const timer = setTimeout(() => {
+        setActiveIndex(index);
+      }, 0);
       // スクロールコンテナが描画されるのを少し待ってからスクロール位置を調整
-      setTimeout(() => {
+      const scrollTimer = setTimeout(() => {
         const container = scrollContainerRef.current;
         const targetEl = cardRefs.current[posts[index].id];
         if (container && targetEl) {
@@ -129,10 +131,17 @@ function Page({ params }: PageProps) {
           });
         }
       }, 100);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(scrollTimer);
+      };
     } else {
       // 存在しないIDの場合は最初の投稿を表示
-      setActiveIndex(0);
-      window.history.replaceState(null, '', `/posts/${posts[0].id}`);
+      const timer = setTimeout(() => {
+        setActiveIndex(0);
+        window.history.replaceState(null, '', `/posts/${posts[0].id}`);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [loading, posts, id]);
 
