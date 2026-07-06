@@ -116,8 +116,10 @@ export default function ChatPage() {
   // --- 2. チャットルーム一覧のリアルタイム監視 ---
   useEffect(() => {
     if (!currentUser) {
-      setRooms([]);
-      return;
+      const timer = setTimeout(() => {
+        setRooms([]);
+      }, 0);
+      return () => clearTimeout(timer);
     }
 
     const roomsCollectionRef = collection(db, "chat_rooms");
@@ -211,8 +213,10 @@ export default function ChatPage() {
   // --- 3. 選択されたチャットルームのメッセージリアルタイム監視 ---
   useEffect(() => {
     if (!selectedRoomId || !currentUser) {
-      setMessages([]);
-      return;
+      const timer = setTimeout(() => {
+        setMessages([]);
+      }, 0);
+      return () => clearTimeout(timer);
     }
 
     const messagesCollectionRef = collection(db, "chat_rooms", selectedRoomId, "messages");
@@ -563,6 +567,7 @@ export default function ChatPage() {
                                   className={styles.emojiImageWrapper}
                                   style={{ marginBottom: msg.content_text ? "8px" : "0" }}
                                 >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
                                     src={msg.image_url}
                                     alt="絵文字"
@@ -581,6 +586,7 @@ export default function ChatPage() {
                                   }}
                                   onClick={() => setZoomImageUrl(msg.image_url)}
                                 >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
                                     src={msg.image_url || ""}
                                     alt="添付画像"
@@ -702,6 +708,7 @@ export default function ChatPage() {
         >
           <button className={styles.modalCloseButton}>&times;</button>
           <div className={styles.modalContent}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={zoomImageUrl}
               alt="拡大画像"
