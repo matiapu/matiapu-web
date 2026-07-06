@@ -277,7 +277,7 @@ export default function ChatPage() {
             isRead: data.read || false
           };
         } catch (err) {
-          console.error("Failed to decrypt message:", err);
+          console.warn("Failed to decrypt message:", err instanceof Error ? err.message : String(err));
           return {
             id: docSnap.id,
             sender_id: data.sender_id === currentUser.uid ? "me" : "partner",
