@@ -14,6 +14,21 @@ import { saveUserProfile, updateUserProfile } from "@/src/firebase/userDb";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [timeOfDay, setTimeOfDay] = useState("night");
+
+  // 現在の時刻に基づいて時間帯（朝・昼・夜）を判定
+  useEffect(() => {
+    const hours = new Date().getHours();
+    if (hours >= 5 && hours < 11) {
+      setTimeOfDay("morning");
+    } else if (hours >= 11 && hours < 18) {
+      setTimeOfDay("noon");
+    } else {
+      // 夜の場合は通常夜(night)とランダム夜(night2)を判定
+      const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
+      setTimeOfDay(isNight2 ? "night2" : "night");
+    }
+  }, []);
   
   // 画面ステップ管理 ('register': アカウント作成フォーム, 'verify': メール認証待機画面)
   const [step, setStep] = useState("register");
@@ -282,7 +297,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className={styles.pageWrapper}>
+    <div className={`${styles.pageWrapper} ${timeOfDay}`}>
       {/* ヘッダー */}
       <header className={styles.header}>
         <div className={styles.logoArea} onClick={() => router.push("/")}>
@@ -524,17 +539,6 @@ export default function SignupPage() {
 
       {/* フッター */}
       <footer className={styles.footer}>
-        <div className={styles.footerLinks}>
-          <Link href="#" className={styles.footerLink}>
-            Support
-          </Link>
-          <Link href="#" className={styles.footerLink}>
-            Privacy Policy
-          </Link>
-          <Link href="#" className={styles.footerLink}>
-            Terms of Service
-          </Link>
-        </div>
         <p className={styles.copyright}>&copy; 2024 SecureAuth Inc. All rights reserved.</p>
       </footer>
     </div>

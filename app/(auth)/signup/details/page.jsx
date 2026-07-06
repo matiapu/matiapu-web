@@ -10,7 +10,6 @@ import {
   faSpinner, 
   faShieldHalved, 
   faChevronRight, 
-  faCircleQuestion,
   faCamera
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
@@ -35,6 +34,21 @@ const PREFECTURES = [
 
 export default function SignupDetailsPage() {
   const router = useRouter();
+  const [timeOfDay, setTimeOfDay] = useState("night");
+
+  // 現在の時刻に基づいて時間帯（朝・昼・夜）を判定
+  useEffect(() => {
+    const hours = new Date().getHours();
+    if (hours >= 5 && hours < 11) {
+      setTimeOfDay("morning");
+    } else if (hours >= 11 && hours < 18) {
+      setTimeOfDay("noon");
+    } else {
+      // 夜の場合は通常夜(night)とランダム夜(night2)を判定
+      const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
+      setTimeOfDay(isNight2 ? "night2" : "night");
+    }
+  }, []);
   const fileInputRef = useRef(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
   
@@ -562,7 +576,7 @@ export default function SignupDetailsPage() {
   };
 
   return (
-    <div className={styles.pageWrapper}>
+    <div className={`${styles.pageWrapper} ${timeOfDay}`}>
       {/* ヘッダー */}
       <header className={styles.header}>
         <div className={styles.logoArea} onClick={() => router.push("/")}>
@@ -574,9 +588,7 @@ export default function SignupDetailsPage() {
           </div>
           <span className={styles.logoText}>マチアプ</span>
         </div>
-        <button className={styles.helpButton} aria-label="ヘルプ">
-          <FontAwesomeIcon icon={faCircleQuestion} />
-        </button>
+
       </header>
 
       {/* ステップ進捗バー */}
@@ -1147,11 +1159,6 @@ export default function SignupDetailsPage() {
 
       {/* フッター */}
       <footer className={styles.footer}>
-        <div className={styles.footerLinks}>
-          <Link href="#" className={styles.footerLink}>Support</Link>
-          <Link href="#" className={styles.footerLink}>Privacy Policy</Link>
-          <Link href="#" className={styles.footerLink}>Terms of Service</Link>
-        </div>
         <p className={styles.copyright}>マチアプ &copy; 2024 ||||. All rights reserved.</p>
       </footer>
     </div>
