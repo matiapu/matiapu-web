@@ -16,9 +16,6 @@ import { recordViewHistory } from '@/src/firebase/historyDb';
 import { auth } from '@/src/firebase/firebase';
 import { POSTS, Post as UIPost } from '@/data/posts';
 
-// Re-export POSTS to maintain backward compatibility with other files importing it from here
-export { POSTS };
-
 interface PageProps {
   params: Promise<{ id: string }>;
 }
@@ -84,7 +81,7 @@ function Page({ params }: PageProps) {
               console.error("Failed to check if post is liked:", e);
             }
             return {
-              id: Number(p.id) || 0,
+              id: p.id || "",
               name: user.displayName || user.nickname || "匿名ユーザー",
               userIcon: user.profileImage || "/user_Icon/user_icon1.jpg",
               title: p.title || "無題の投稿",

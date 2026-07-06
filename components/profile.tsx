@@ -44,7 +44,7 @@ function Profile() {
             
             const contentText = p.content_text || "";
             return {
-              id: Number(p.id) || fallbackIdx,
+              id: p.id || String(fallbackIdx),
               name: authorData?.displayName || authorData?.nickname || "ユーザー",
               address: authorData?.address ? `${authorData.address.prefecture}${authorData.address.addressDetail}` : "",
               userIcon: authorData?.profileImage || "/user_Icon/user_icon1.jpg",
@@ -79,7 +79,7 @@ function Profile() {
             const formattedPosts = posts.map((p, idx) => {
               const contentText = p.content_text || "";
               return {
-                id: Number(p.id) || idx,
+                id: p.id || String(idx),
                 name: data?.displayName || data?.nickname || currentUser.displayName || "ユーザー",
                 address: data?.address ? `${data.address.prefecture}${data.address.addressDetail}` : "",
                 userIcon: data?.profileImage || "/user_Icon/user_icon1.jpg",
