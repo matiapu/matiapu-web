@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope, faPaperPlane, faArrowLeft, faCircleQuestion, faLock, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faPaperPlane, faArrowLeft, faLock, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import styles from "./ForgotPassword.module.css";
 
@@ -117,15 +117,11 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className={styles.pageWrapper}>
-      {/* ヘッダー */}
       <header className={styles.header}>
         <div className={styles.logoArea} onClick={() => router.push("/")}>
           <FontAwesomeIcon icon={faLock} className={styles.logoIcon} style={{ marginRight: "4px" }} />
           <span>SecureAuth</span>
         </div>
-        <button className={styles.helpButton} aria-label="ヘルプ">
-          <FontAwesomeIcon icon={faCircleQuestion} />
-        </button>
       </header>
 
       {/* メインコンテンツ */}
@@ -139,13 +135,7 @@ export default function ForgotPasswordPage() {
         </Suspense>
       </main>
 
-      {/* フッター */}
       <footer className={styles.footer}>
-        <div className={styles.footerLinks}>
-          <Link href="#" className={styles.footerLink}>サポート</Link>
-          <Link href="#" className={styles.footerLink}>利用規約</Link>
-          <Link href="#" className={styles.footerLink}>プライバシーポリシー</Link>
-        </div>
         <p className={styles.copyright}>&copy; 2024 SecureAuth Inc. All rights reserved.</p>
         <div className={styles.footerBrand}>SECUREAUTH</div>
       </footer>

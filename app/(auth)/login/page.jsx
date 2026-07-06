@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEyeSlash, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import styles from "./Login.module.css";
 
@@ -119,11 +119,7 @@ export default function LoginPage() {
           <img src="/logo.png" alt="マチアプ" className={styles.logoImage} />
           <span className={styles.logoText}>マチアプ</span>
         </div>
-        <div className={styles.headerControls}>
-          <button className={styles.helpButton} aria-label="ヘルプ">
-            <FontAwesomeIcon icon={faCircleQuestion} />
-          </button>
-        </div>
+
       </header>
 
       {/* メインコンテンツ */}
@@ -233,17 +229,6 @@ export default function LoginPage() {
 
       {/* フッター */}
       <footer className={styles.footer}>
-        <div className={styles.footerLinks}>
-          <Link href="#" className={styles.footerLink}>
-            サポート
-          </Link>
-          <Link href="#" className={styles.footerLink}>
-            プライバシーポリシー
-          </Link>
-          <Link href="#" className={styles.footerLink}>
-            利用規約
-          </Link>
-        </div>
         <p className={styles.copyright}>&copy; 2024 SecureAuth Inc.</p>
       </footer>
     </div>
