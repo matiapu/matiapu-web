@@ -1,12 +1,15 @@
 "use client"
-import React from 'react'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import UserIcon from './UserIcon'
 import styles from './PostCard.module.css'
 import Image from 'next/image'
+import { Post as UIPost } from '@/data/posts'
 
+interface PostCardProps {
+  post: UIPost;
+}
 
-function PostCard({ post }) {
+function PostCard({ post }: PostCardProps) {
     // 投稿が開いているかどうかを管理するステート（初期値は false = 閉じている
     const [isOpen, setIsOpen] = useState(false)
 
@@ -25,7 +28,7 @@ function PostCard({ post }) {
         setIsOpen(!isOpen)
     }
 
-    const handleChildClick = (e) => {
+    const handleChildClick = (e: React.MouseEvent) => {
         e.stopPropagation()
     }
     return (

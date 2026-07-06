@@ -1,10 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faPaperPlane, faArrowLeft, faLock, faSpinner } from "@fortawesome/free-solid-svg-icons";
-import Link from "next/link";
 import styles from "./ForgotPassword.module.css";
 
 // Firebase Auth Operations
@@ -22,13 +22,21 @@ function ForgotPasswordForm() {
 
   // クエリパラメータからメールアドレスを自動入力
   useEffect(() => {
+    // URLに ?email=... というパラメータが存在しない場合、nullを返すやつ
     const emailParam = searchParams.get("email");
+
+    // useEffectは何か変化があると実行されてしまうので2回実行されるのを防止
+    // emailParam が null でなければ実行してOK！
     if (emailParam) {
-      setEmail(decodeURIComponent(emailParam));
+      const decoded = decodeURIComponent(emailParam);
+      const timer = setTimeout(() => {
+        setEmail(decoded);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [searchParams]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       setError("メールアドレスを入力してください。");
@@ -44,7 +52,8 @@ function ForgotPasswordForm() {
       setMessage("パスワード再設定用のメールを送信しました。メールボックスを確認してください。");
     } catch (err) {
       console.error("Password reset error:", err);
-      if (err.code === "auth/user-not-found" || err.code === "auth/invalid-email") {
+      const firebaseError = err as { code?: string };
+      if (firebaseError.code === "auth/user-not-found" || firebaseError.code === "auth/invalid-email") {
         setError("メールアドレスが正しくないか、登録されていません。");
       } else {
         setError("メールの送信に失敗しました。入力内容をお確かめください。");
@@ -58,7 +67,7 @@ function ForgotPasswordForm() {
     <div className={styles.circleCard}>
       {/* ロゴサークル */}
       <div className={styles.logoCircle}>
-        <img src="/logo.png" alt="マチアプ" className={styles.logoImage} />
+        <Image src="/logo.png" alt="マチアプ" className={styles.logoImage} width={48} height={48} />
       </div>
       <p className={styles.logoText}>マチアプ</p>
 

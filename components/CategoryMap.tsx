@@ -12,8 +12,34 @@ import { auth } from '@/src/firebase/firebase';
 import { getUserProfile } from '@/src/firebase/userDb';
 import { getPosts } from '@/src/firebase/postDb';
 
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
+interface LocationItem {
+  id?: string | number;
+  name?: string;
+  lat: number;
+  lng: number;
+  category: string;
+  isEpicenter?: boolean;
+  seismic_intensity?: string;
+  isPrefectureIntensity?: boolean;
+  prefName?: string;
+  intensity?: string;
+  scale?: string;
+  isTsunami?: boolean;
+}
+
+interface IntensityColor {
+  bg: string;
+  text: string;
+}
+
 // ユーザー指定の震度カラー
-const INTENSITY_COLORS = {
+const INTENSITY_COLORS: Record<string, IntensityColor> = {
   "7": { bg: "#800080", text: "#ffffff" },       // 赤紫
   "6強": { bg: "#8B0000", text: "#ffffff" },   // 濃い赤
   "6弱": { bg: "#FF0000", text: "#ffffff" },   // 赤
@@ -25,8 +51,13 @@ const INTENSITY_COLORS = {
   "1": { bg: "#FFFFFF", text: "#000000" }        // 白色
 };
 
+interface PrefectureLayersProps {
+  locations: LocationItem[];
+  selectedCategory: string | null;
+}
+
 // 都道府県の境界（GeoJSON）をマップに適用し、震度に応じて色付けするコンポーネント
-function PrefectureLayers({ locations, selectedCategory }) {
+function PrefectureLayers({ locations, selectedCategory }: PrefectureLayersProps) {
   const map = useMap();
 
   useEffect(() => {
@@ -42,7 +73,7 @@ function PrefectureLayers({ locations, selectedCategory }) {
 
     // 災害カテゴリがアクティブな場合のみ色付けを判定
     const isDisasterActive = selectedCategory === "disaster" || selectedCategory === null;
-    const prefIntensities = {};
+    const prefIntensities: Record<string, LocationItem> = {};
 
     if (isDisasterActive) {
       for (const loc of locations) {
@@ -63,10 +94,10 @@ function PrefectureLayers({ locations, selectedCategory }) {
 
         // データレイヤーのスタイルを動的に設定
         dataLayer.setStyle((feature) => {
-          const prefName = feature.getProperty("name"); // 例: "大阪府", "岩手県"
+          const prefName = feature.getProperty("name") as string; // 例: "大阪府", "岩手県"
           const match = prefIntensities[prefName];
 
-          if (match) {
+          if (match && match.intensity) {
             const intensityStyle = INTENSITY_COLORS[match.intensity] || { bg: "#808080" };
             return {
               fillColor: intensityStyle.bg,
@@ -98,18 +129,13 @@ function PrefectureLayers({ locations, selectedCategory }) {
   return null;
 }
 
-// ダミーデータ（道路・お店・通報など）を返す関数
-const getLocationsData = async () => {
-  return [
-    { id: 1, name: "おしゃれカフェA", lat: 35.681228, lng: 139.767052, category: "disaster" },
-    { id: 2, name: "ラーメン店B", lat: 35.683500, lng: 139.765000, category: "road" },
-    { id: 3, name: "緑の公園C", lat: 35.678000, lng: 139.769000, category: "shop" },
-    { id: 1, name: "静かなカフェD", lat: 35.685000, lng: 139.771000, category: "disaster" },
-    { id: 2, name: "通報エリアA", lat: 35.682000, lng: 139.768000, category: "report" }
-  ];
-};
+interface CategoryStyle {
+  background: string;
+  glyph: string;
+  label: string;
+}
 
-const categoryStyles = {
+const categoryStyles: Record<string, CategoryStyle> = {
   disaster: { background: "#8B4513", glyph: "🔥", label: "災害" },
   road: { background: "#FF8C00", glyph: "🚗", label: "道路" },
   shop: { background: "#2E8B57", glyph: "🏪", label: "お店" },
@@ -118,7 +144,7 @@ const categoryStyles = {
 };
 
 // 都道府県の代表的な緯度・経度
-const PREFECTURE_COORDS = {
+const PREFECTURE_COORDS: Record<string, { lat: number; lng: number }> = {
   "北海道": { lat: 43.06417, lng: 141.34694 },
   "青森県": { lat: 40.82444, lng: 140.74 },
   "岩手県": { lat: 39.70361, lng: 141.1525 },
@@ -168,8 +194,13 @@ const PREFECTURE_COORDS = {
   "沖縄県": { lat: 26.2125, lng: 127.68111 }
 };
 
+interface MapControllerProps {
+  center: { lat: number; lng: number };
+  zoom: number;
+}
+
 // マップの中心とズームを制御するコンポーネント
-function MapController({ center, zoom }) {
+function MapController({ center, zoom }: MapControllerProps) {
   const map = useMap();
 
   useEffect(() => {
@@ -187,8 +218,14 @@ function MapController({ center, zoom }) {
   return null;
 }
 
+interface AddressGeocoderProps {
+  address: string;
+  onGeocode: (coords: { lat: number; lng: number }) => void;
+  skip: boolean;
+}
+
 // ユーザーの活動地域（住所）をジオコーディングしてマップの中心を更新するコンポーネント
-function AddressGeocoder({ address, onGeocode, skip }) {
+function AddressGeocoder({ address, onGeocode, skip }: AddressGeocoderProps) {
   const map = useMap();
   const geocodedAddressRef = useRef("");
 
@@ -219,18 +256,18 @@ function AddressGeocoder({ address, onGeocode, skip }) {
 function CategoryMap() {
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
-  const cardRef = useRef(null);
-  const [locations, setLocations] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedLocation, setSelectedLocation] = useState(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [locations, setLocations] = useState<LocationItem[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [isInteracted, setIsInteracted] = useState(false);
 
   useEffect(() => {
     if (isInteracted) return;
 
-    const handleInteraction = (event) => {
+    const handleInteraction = (event: any) => {
       // 1. クリック/タッチ/ホイールの座標がヘッダー領域（高さ64px）の場合は無視する
       if (event && typeof event.clientY === 'number') {
         if (event.clientY < 64) {
@@ -320,7 +357,7 @@ function CategoryMap() {
 
   const hasEarthquake = locations.some(loc => loc.category === "disaster" && loc.isEpicenter);
 
-  const handleGeocode = useCallback((coords) => {
+  const handleGeocode = useCallback((coords: { lat: number; lng: number }) => {
     if (hasEarthquake) return;
     setMapCenter(coords);
     setMapZoom(14);
@@ -328,7 +365,7 @@ function CategoryMap() {
     localStorage.setItem("matiapu_user_region_zoom", "14");
   }, [hasEarthquake, setMapCenter, setMapZoom]);
 
-  const handleCategoryChange = (category) => {
+  const handleCategoryChange = (category: string | null) => {
     setSelectedCategory(category);
     setSelectedLocation(null);
   };
@@ -340,7 +377,7 @@ function CategoryMap() {
         setError(null);
         
         // 1. Firestoreから全投稿を取得
-        let dbPosts = [];
+        let dbPosts: any[] = [];
         try {
           dbPosts = await getPosts();
         } catch (dbErr) {
@@ -378,23 +415,21 @@ function CategoryMap() {
               lat: lat,
               lng: lng,
               category: category
-            };
+            } as LocationItem;
           })
-          .filter(loc => loc !== null);
+          .filter((loc): loc is LocationItem => loc !== null);
 
         // 2. Firestoreから最新の災害情報を取得
-        let firedisasters = [];
+        let firedisasters: any[] = [];
         try {
           firedisasters = await getDisasters();
         } catch (dbErr) {
           console.error('Firestoreから災害情報の取得に失敗しました。', dbErr);
         }
 
-
-
-        const disasterLocations = [];
+        const disasterLocations: LocationItem[] = [];
         let hasEarthquake = false;
-        let latestEpicenterCoords = null;
+        let latestEpicenterCoords: { lat: number; lng: number } | null = null;
 
         for (const disaster of firedisasters) {
           if (disaster.disaster_type === '地震') {
@@ -427,7 +462,7 @@ function CategoryMap() {
 
             // 都道府県ごとの震度情報がある場合はそれらもマッピング
             if (disaster.prefecture_intensity) {
-              for (const [prefName, prefData] of Object.entries(disaster.prefecture_intensity)) {
+              for (const [prefName, prefData] of Object.entries<any>(disaster.prefecture_intensity)) {
                 const coords = PREFECTURE_COORDS[prefName];
                 if (coords) {
                   disasterLocations.push({
@@ -489,14 +524,14 @@ function CategoryMap() {
 
   // ほかのとこクリックしたらボタン消える
   useEffect(() => {
-    const handleDocumentClick = (event) => {
+    const handleDocumentClick = (event: any) => {
       if (cardRef.current && cardRef.current.contains(event.target)) {
         return;
       }
       
       const path = event.composedPath ? event.composedPath() : [];
       const isPinClick = (event.target.closest && event.target.closest('[data-pin="true"]')) ||
-        path.some(el => el.getAttribute && el.getAttribute('data-pin') === 'true');
+        path.some((el: any) => el.getAttribute && el.getAttribute('data-pin') === 'true');
       
       if (isPinClick) {
         return;
@@ -587,7 +622,7 @@ function CategoryMap() {
           })}
         </div>
         
-        <APIProvider apiKey={API_KEY}>
+        <APIProvider apiKey={API_KEY || ""}>
           <div className={`${styles.mapContainer} ${isInteracted ? styles.mapContainerFullscreen : ""}`}>
             
             <Map
@@ -603,6 +638,7 @@ function CategoryMap() {
               }}
             >
               <MapController center={mapCenter} zoom={mapZoom} />
+              <PrefectureLayers locations={locations} selectedCategory={selectedCategory} />
               <AddressGeocoder address={userAddress} onGeocode={handleGeocode} skip={hasEarthquake} />
               {/* フィルタリングされた配列をループしてピンを配置 */}
               {filteredLocations.map((data, index) => {
@@ -627,8 +663,8 @@ function CategoryMap() {
                     }}
                   >
                     <div 
-                      className={`${styles.pinWrapper} ${isSelected ? styles.selectedPin : ''}`}
-                      data-pin="true"
+                       className={`${styles.pinWrapper} ${isSelected ? styles.selectedPin : ''}`}
+                       data-pin="true"
                     >
                       <Pin
                         background={style.background}

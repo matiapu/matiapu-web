@@ -14,7 +14,6 @@ import {
   faEye,
   faEyeSlash
 } from "@fortawesome/free-solid-svg-icons";
-import Link from "next/link";
 import styles from "../StoreDetails.module.css";
 
 // Firebase Auth, Storage, and Centralized Firestore Database Operations
@@ -34,6 +33,18 @@ const PREFECTURES = [
   "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
 ];
 
+interface FormData {
+  shopName: string;
+  shopIntroduction: string;
+  shopPhoneNumber: string;
+  email: string;
+  postalCode: string;
+  prefecture: string;
+  addressDetail: string;
+  buildingName: string;
+  profileImage: string;
+}
+
 export default function StoreSignupDetailsPage() {
   const router = useRouter();
   const [timeOfDay, setTimeOfDay] = useState("night");
@@ -41,17 +52,20 @@ export default function StoreSignupDetailsPage() {
   // 現在の時刻に基づいて時間帯（朝・昼・夜）を判定
   useEffect(() => {
     const hours = new Date().getHours();
-    if (hours >= 5 && hours < 11) {
-      setTimeOfDay("morning");
-    } else if (hours >= 11 && hours < 18) {
-      setTimeOfDay("noon");
-    } else {
-      // 夜の場合は通常夜(night)とランダム夜(night2)を判定
-      const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
-      setTimeOfDay(isNight2 ? "night2" : "night");
-    }
+    const timer = setTimeout(() => {
+      if (hours >= 5 && hours < 11) {
+        setTimeOfDay("morning");
+      } else if (hours >= 11 && hours < 18) {
+        setTimeOfDay("noon");
+      } else {
+        // 夜の場合は通常夜(night)とランダム夜(night2)を判定
+        const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
+        setTimeOfDay(isNight2 ? "night2" : "night");
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
   
   // 画面状態 ('loading': 読み込み中, 2: プロフィール入力, 3: 登録完了)
@@ -59,11 +73,11 @@ export default function StoreSignupDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // プロフィール画像の状態
-  const [originalFile, setOriginalFile] = useState(null);
-  const [avatarFile, setAvatarFile] = useState(null);
+  const [, setOriginalFile] = useState<File | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
 
   // クロップ処理用状態
@@ -74,11 +88,11 @@ export default function StoreSignupDetailsPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [imgDisplaySize, setImgDisplaySize] = useState({ width: 0, height: 0 });
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
-  const [savedCropPosition, setSavedCropPosition] = useState(null);
+  const [savedCropPosition, setSavedCropPosition] = useState<any>(null);
   const [isImageAlreadySet, setIsImageAlreadySet] = useState(false);
 
   // フォームデータ
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     shopName: "",
     shopIntroduction: "",
     shopPhoneNumber: "",
@@ -100,7 +114,7 @@ export default function StoreSignupDetailsPage() {
       if (user) {
         setCurrentUser(user);
         try {
-          const data = await getUserProfile(user.uid);
+          const data: any = await getUserProfile(user.uid);
           
           if (data) {
             // 他のアカウントタイプで店舗登録画面に来た場合はリダイレクト
@@ -115,8 +129,8 @@ export default function StoreSignupDetailsPage() {
               return;
             }
 
-            const address = data.address || {};
-            const profileImageMap = data.profileImage || {};
+            const address: any = data.address || {};
+            const profileImageMap: any = data.profileImage || {};
             
             let imageUrl = "";
             let cropPos = null;
@@ -236,7 +250,7 @@ export default function StoreSignupDetailsPage() {
   };
 
   // ファイル選択変更時の処理（切り抜きモーダルを開く）
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith("image/")) {
@@ -246,15 +260,17 @@ export default function StoreSignupDetailsPage() {
       setOriginalFile(file); // 元のファイルを保存
       const reader = new FileReader();
       reader.onload = (event) => {
-        setCropSrc(event.target.result);
-        setIsCropperOpen(true);
+        if (event.target?.result) {
+          setCropSrc(event.target.result as string);
+          setIsCropperOpen(true);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
   // クロップオフセット制限
-  const clampOffset = (x, y, currentZoom) => {
+  const clampOffset = (x: number, y: number, currentZoom: number) => {
     const w = imgDisplaySize.width * currentZoom;
     const h = imgDisplaySize.height * currentZoom;
     const minX = 240 - w;
@@ -266,13 +282,15 @@ export default function StoreSignupDetailsPage() {
     return { x: clampedX, y: clampedY };
   };
 
-  const handleZoomChange = (newZoom) => {
+  const handleZoomChange = (newZoom: number) => {
     setZoom(newZoom);
     setCropOffset((prev) => clampOffset(prev.x, prev.y, newZoom));
   };
 
-  const handleImageLoad = (e) => {
-    const { naturalWidth, naturalHeight } = e.target;
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const naturalWidth = img.naturalWidth;
+    const naturalHeight = img.naturalHeight;
     let w = 280;
     let h = 280;
     if (naturalWidth > naturalHeight) {
@@ -289,7 +307,7 @@ export default function StoreSignupDetailsPage() {
     setZoom(1.0);
   };
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
     dragStartRef.current = {
@@ -298,7 +316,7 @@ export default function StoreSignupDetailsPage() {
     };
   };
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     const rawX = e.clientX - dragStartRef.current.x;
     const rawY = e.clientY - dragStartRef.current.y;
@@ -309,7 +327,7 @@ export default function StoreSignupDetailsPage() {
     setIsDragging(false);
   };
 
-  const handleTouchStart = (e) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
       dragStartRef.current = {
@@ -319,7 +337,7 @@ export default function StoreSignupDetailsPage() {
     }
   };
 
-  const handleTouchMove = (e) => {
+  const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || e.touches.length !== 1) return;
     const rawX = e.touches[0].clientX - dragStartRef.current.x;
     const rawY = e.touches[0].clientY - dragStartRef.current.y;
@@ -334,22 +352,25 @@ export default function StoreSignupDetailsPage() {
       canvas.width = 400;
       canvas.height = 400;
       const ctx = canvas.getContext("2d");
-      const scale = naturalSize.width / (imgDisplaySize.width * zoom);
-      const sx = (40 - cropOffset.x) * scale;
-      const sy = (40 - cropOffset.y) * scale;
-      const sw = 200 * scale;
-      const sh = 200 * scale;
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 400, 400);
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const croppedFile = new File([blob], "avatar.jpeg", { type: "image/jpeg" });
-          setAvatarFile(croppedFile);
-          const localUrl = URL.createObjectURL(blob);
-          setAvatarPreview(localUrl);
-          setSavedCropPosition(null);
-        }
-        setIsCropperOpen(false);
-      }, "image/jpeg", 0.85);
+      
+      if (ctx) {
+        const scale = naturalSize.width / (imgDisplaySize.width * zoom);
+        const sx = (40 - cropOffset.x) * scale;
+        const sy = (40 - cropOffset.y) * scale;
+        const sw = 200 * scale;
+        const sh = 200 * scale;
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 400, 400);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const croppedFile = new File([blob], "avatar.jpeg", { type: "image/jpeg" });
+            setAvatarFile(croppedFile);
+            const localUrl = URL.createObjectURL(blob);
+            setAvatarPreview(localUrl);
+            setSavedCropPosition(null);
+          }
+          setIsCropperOpen(false);
+        }, "image/jpeg", 0.85);
+      }
     };
     img.src = cropSrc;
   };
@@ -362,11 +383,11 @@ export default function StoreSignupDetailsPage() {
     }
   };
 
-  const getCroppedImgStyle = (cropPos, containerSize = 90) => {
-    if (!cropPos) return { width: "100%", height: "100%", objectFit: "cover" };
+  const getCroppedImgStyle = (cropPos: any, containerSize = 90) => {
+    if (!cropPos) return { width: "100%", height: "100%", objectFit: "cover" as const };
     const ratio = containerSize / 200;
     return {
-      position: "absolute",
+      position: "absolute" as const,
       left: `${(cropPos.offsetX - 40) * ratio}px`,
       top: `${(cropPos.offsetY - 40) * ratio}px`,
       width: `${(cropPos.displayW * cropPos.zoom) * ratio}px`,
@@ -376,7 +397,7 @@ export default function StoreSignupDetailsPage() {
   };
 
   // プロフィール情報登録の送信処理
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isShopNameValid || !isShopIntroductionValid || !isShopPhoneNumberValid || !isAddressValid || !isPasswordValid) {
@@ -402,7 +423,8 @@ export default function StoreSignupDetailsPage() {
           imageUrl = await getDownloadURL(uploadResult.ref);
         } catch (imgErr) {
           console.error("Profile image upload failed:", imgErr);
-          throw new Error("店舗画像のアップロードに失敗しました: " + imgErr.message);
+          const message = imgErr instanceof Error ? imgErr.message : String(imgErr);
+          throw new Error("店舗画像のアップロードに失敗しました: " + message);
         }
       }
 
@@ -412,10 +434,11 @@ export default function StoreSignupDetailsPage() {
           await updatePassword(currentUser, newPassword);
         } catch (passErr) {
           console.error("Password update failed:", passErr);
-          if (passErr.code === "auth/requires-recent-login") {
+          const firebaseError = passErr as { code?: string; message?: string };
+          if (firebaseError.code === "auth/requires-recent-login") {
             throw new Error("セキュリティ確保のため、パスワード変更には再ログインが必要です。一度ログアウトし、再ログインしてからお試しください。");
           }
-          throw new Error("パスワードの変更に失敗しました: " + passErr.message);
+          throw new Error("パスワードの変更に失敗しました: " + (firebaseError.message || String(passErr)));
         }
       }
 
@@ -430,7 +453,7 @@ export default function StoreSignupDetailsPage() {
           buildingName: formData.buildingName,
         },
         profileImage: imageUrl || null,
-        userType: "shop",
+        userType: "shop" as const,
         isProfileCompleted: true,
         isRegistered: true,
         updatedAt: new Date().toISOString()
@@ -447,7 +470,8 @@ export default function StoreSignupDetailsPage() {
       setStep(3);
     } catch (err) {
       console.error("Submit profile error:", err);
-      setError(err.message || "店舗情報の登録に失敗しました。お手数ですが時間をおいて再度お試しください。");
+      const message = err instanceof Error ? err.message : "店舗情報の登録に失敗しました。お手数ですが時間をおいて再度お試しください。";
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -502,7 +526,6 @@ export default function StoreSignupDetailsPage() {
           </div>
           <span className={styles.logoText}>マチアプ</span>
         </div>
-
       </header>
 
       {/* ステップ進捗バー */}
@@ -535,6 +558,7 @@ export default function StoreSignupDetailsPage() {
                 >
                   <div className={styles.avatarCircle}>
                     {avatarPreview ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img 
                         src={avatarPreview} 
                         alt="店舗画像" 
@@ -851,6 +875,7 @@ export default function StoreSignupDetailsPage() {
             <div className={styles.successContainer}>
               <div className={styles.successIconWrapper} style={{ overflow: "hidden", position: "relative" }}>
                 {avatarPreview ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img 
                     src={avatarPreview} 
                     alt="店舗画像" 
@@ -896,6 +921,7 @@ export default function StoreSignupDetailsPage() {
               onTouchMove={handleTouchMove}
               onTouchEnd={handleMouseUp}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={cropSrc}
                 alt="Crop Target"

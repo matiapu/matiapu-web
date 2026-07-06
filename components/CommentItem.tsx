@@ -7,8 +7,23 @@ import { createComment, getThreadComments } from '@/src/firebase/commentDb';
 import { getUserProfile } from '@/src/firebase/userDb';
 import { auth } from '@/src/firebase/firebase';
 
-function CommentItem({ comment, isReply = false, rootId = null, postId }) {
-  const [replies, setReplies] = useState([]);
+interface CommentData {
+  id: string;
+  name: string;
+  userIcon: string;
+  content: string;
+  createAt: string;
+}
+
+interface CommentItemProps {
+  comment: CommentData;
+  isReply?: boolean;
+  rootId?: string | null;
+  postId: string;
+}
+
+function CommentItem({ comment, isReply = false, rootId = null, postId }: CommentItemProps) {
+  const [replies, setReplies] = useState<CommentData[]>([]);
   const [showReply, setShowReply] = useState(false);
   const [loading, setLoading] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -21,8 +36,8 @@ function CommentItem({ comment, isReply = false, rootId = null, postId }) {
       const fetchedReplies = await getThreadComments(comment.id);
       
       // 各返信投稿者のプロファイルをロード
-      const uids = Array.from(new Set(fetchedReplies.map(r => r.author_uid).filter(Boolean)));
-      const userProfiles = {};
+      const uids = Array.from(new Set(fetchedReplies.map(r => r.author_uid).filter(Boolean))) as string[];
+      const userProfiles: Record<string, any> = {};
       
       await Promise.all(
         uids.map(async (uid) => {
@@ -72,7 +87,7 @@ function CommentItem({ comment, isReply = false, rootId = null, postId }) {
   };
 
   // コメントの返信を送信する処理
-  const handleReplySubmit = async (e) => {
+  const handleReplySubmit = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && replyText.trim() && !submittingReply) {
       e.preventDefault();
       setSubmittingReply(true);
@@ -104,7 +119,7 @@ function CommentItem({ comment, isReply = false, rootId = null, postId }) {
   return (
     <div className={styles.itemContainer}>
       <div className={styles.User_info}>
-        <UserIcon iconUrl={comment.userIcon} alt={`${comment.name}さんのアイコン`} fill sizes='100vh' className={styles.UserIcon} />
+        <UserIcon iconUrl={comment.userIcon} userName={comment.name} className={styles.UserIcon} />
         <h2 className={styles.name}>{comment.name}</h2>
       </div>
       <div className={styles.contents}>

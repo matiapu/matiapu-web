@@ -12,11 +12,10 @@ import {
   faChevronRight, 
   faCamera
 } from "@fortawesome/free-solid-svg-icons";
-import Link from "next/link";
 import styles from "./Details.module.css";
 
 // Firebase Auth, Storage, and Centralized Firestore Database Operations
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, storage } from "@/src/firebase/firebase";
 import { getUserProfile, saveUserProfile } from "@/src/firebase/userDb";
@@ -32,6 +31,25 @@ const PREFECTURES = [
   "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
 ];
 
+interface FormData {
+  lastName: string;
+  firstName: string;
+  lastNameKana: string;
+  firstNameKana: string;
+  email: string;
+  nickname: string;
+  birthYear: string;
+  birthMonth: string;
+  birthDay: string;
+  postalCode: string;
+  prefecture: string;
+  addressDetail: string;
+  buildingName: string;
+  profileImage: string;
+  politicalParty: string;
+  pledge: string;
+}
+
 export default function SignupDetailsPage() {
   const router = useRouter();
   const [timeOfDay, setTimeOfDay] = useState("night");
@@ -39,17 +57,20 @@ export default function SignupDetailsPage() {
   // 現在の時刻に基づいて時間帯（朝・昼・夜）を判定
   useEffect(() => {
     const hours = new Date().getHours();
-    if (hours >= 5 && hours < 11) {
-      setTimeOfDay("morning");
-    } else if (hours >= 11 && hours < 18) {
-      setTimeOfDay("noon");
-    } else {
-      // 夜の場合は通常夜(night)とランダム夜(night2)を判定
-      const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
-      setTimeOfDay(isNight2 ? "night2" : "night");
-    }
+    const timer = setTimeout(() => {
+      if (hours >= 5 && hours < 11) {
+        setTimeOfDay("morning");
+      } else if (hours >= 11 && hours < 18) {
+        setTimeOfDay("noon");
+      } else {
+        // 夜の場合は通常夜(night)とランダム夜(night2)を判定
+        const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
+        setTimeOfDay(isNight2 ? "night2" : "night");
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
   
   // 画面状態 ('loading': 読み込み中, 2: プロフィール入力, 3: 登録完了)
@@ -57,15 +78,15 @@ export default function SignupDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // 新規追加: アカウント種別 ('general': 一般, 'politician': 議員) & ソーシャルユーザー判定
   const [accountType, setAccountType] = useState("general");
   const [isSocialUser, setIsSocialUser] = useState(false);
 
   // プロフィール画像の状態
-  const [originalFile, setOriginalFile] = useState(null);
-  const [avatarFile, setAvatarFile] = useState(null);
+  const [, setOriginalFile] = useState<File | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
 
   // クロップ処理用状態
@@ -76,11 +97,11 @@ export default function SignupDetailsPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [imgDisplaySize, setImgDisplaySize] = useState({ width: 0, height: 0 });
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
-  const [savedCropPosition, setSavedCropPosition] = useState(null);
+  const [savedCropPosition, setSavedCropPosition] = useState<any>(null);
   const [isImageAlreadySet, setIsImageAlreadySet] = useState(false);
 
   // フォームデータ
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     lastName: "",
     firstName: "",
     lastNameKana: "",
@@ -101,7 +122,7 @@ export default function SignupDetailsPage() {
 
   // 生年月日用の選択肢生成
   const currentYear = new Date().getFullYear();
-  const years = [];
+  const years: number[] = [];
   // 18歳以上を対象にする（現在年-18歳から1940年まで）
   const maxYear = currentYear - 18;
   for (let y = maxYear; y >= 1940; y--) {
@@ -122,10 +143,9 @@ export default function SignupDetailsPage() {
         setIsSocialUser(isSocial);
 
         try {
-          const data = await getUserProfile(user.uid);
+          const data: any = await getUserProfile(user.uid);
           
           if (data) {
-            
             // すでに登録完了している場合はトップへリダイレクト
             if (data.isProfileCompleted || data.isRegistered) {
               router.replace("/");
@@ -139,8 +159,8 @@ export default function SignupDetailsPage() {
               setAccountType("general");
             }
 
-            const address = data.address || {};
-            const profileImageMap = data.profileImage || {};
+            const address: any = data.address || {};
+            const profileImageMap: any = data.profileImage || {};
             
             let imageUrl = "";
             let cropPos = null;
@@ -282,7 +302,7 @@ export default function SignupDetailsPage() {
   };
 
   // ファイル選択変更時の処理（切り抜きモーダルを開く）
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith("image/")) {
@@ -292,15 +312,17 @@ export default function SignupDetailsPage() {
       setOriginalFile(file); // 元のファイルを保存
       const reader = new FileReader();
       reader.onload = (event) => {
-        setCropSrc(event.target.result);
-        setIsCropperOpen(true);
+        if (event.target?.result) {
+          setCropSrc(event.target.result as string);
+          setIsCropperOpen(true);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
   // 切り抜き範囲（200x200のサークル、オフセット40px）から画像がはみ出さないようにオフセットをクランプする関数
-  const clampOffset = (x, y, currentZoom) => {
+  const clampOffset = (x: number, y: number, currentZoom: number) => {
     const w = imgDisplaySize.width * currentZoom;
     const h = imgDisplaySize.height * currentZoom;
 
@@ -320,14 +342,16 @@ export default function SignupDetailsPage() {
   };
 
   // ズーム変更時の処理（位置調整オフセットがはみ出さないように再クランプ）
-  const handleZoomChange = (newZoom) => {
+  const handleZoomChange = (newZoom: number) => {
     setZoom(newZoom);
     setCropOffset((prev) => clampOffset(prev.x, prev.y, newZoom));
   };
 
   // 切り抜きモーダル内で画像読み込み完了時のサイズ設定
-  const handleImageLoad = (e) => {
-    const { naturalWidth, naturalHeight } = e.target;
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const naturalWidth = img.naturalWidth;
+    const naturalHeight = img.naturalHeight;
     let w = 280;
     let h = 280;
     
@@ -350,7 +374,7 @@ export default function SignupDetailsPage() {
   };
 
   // ドラッグ操作（マウス）
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
     dragStartRef.current = {
@@ -359,7 +383,7 @@ export default function SignupDetailsPage() {
     };
   };
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     const rawX = e.clientX - dragStartRef.current.x;
     const rawY = e.clientY - dragStartRef.current.y;
@@ -371,7 +395,7 @@ export default function SignupDetailsPage() {
   };
 
   // ドラッグ操作（タッチ）
-  const handleTouchStart = (e) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
       dragStartRef.current = {
@@ -381,7 +405,7 @@ export default function SignupDetailsPage() {
     }
   };
 
-  const handleTouchMove = (e) => {
+  const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || e.touches.length !== 1) return;
     const rawX = e.touches[0].clientX - dragStartRef.current.x;
     const rawY = e.touches[0].clientY - dragStartRef.current.y;
@@ -403,26 +427,28 @@ export default function SignupDetailsPage() {
       canvas.height = 400;
       const ctx = canvas.getContext("2d");
 
-      // クロップ座標の計算
-      const scale = naturalSize.width / (imgDisplaySize.width * zoom);
-      const sx = (40 - cropOffset.x) * scale;
-      const sy = (40 - cropOffset.y) * scale;
-      const sw = 200 * scale;
-      const sh = 200 * scale;
+      if (ctx) {
+        // クロップ座標の計算
+        const scale = naturalSize.width / (imgDisplaySize.width * zoom);
+        const sx = (40 - cropOffset.x) * scale;
+        const sy = (40 - cropOffset.y) * scale;
+        const sw = 200 * scale;
+        const sh = 200 * scale;
 
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 400, 400);
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 400, 400);
 
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const croppedFile = new File([blob], "avatar.jpeg", { type: "image/jpeg" });
-          setAvatarFile(croppedFile);
-          
-          const localUrl = URL.createObjectURL(blob);
-          setAvatarPreview(localUrl);
-          setSavedCropPosition(null); // 以後はCSS調整不要なのでnullに
-        }
-        setIsCropperOpen(false);
-      }, "image/jpeg", 0.85);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const croppedFile = new File([blob], "avatar.jpeg", { type: "image/jpeg" });
+            setAvatarFile(croppedFile);
+            
+            const localUrl = URL.createObjectURL(blob);
+            setAvatarPreview(localUrl);
+            setSavedCropPosition(null); // 以後はCSS調整不要なのでnullに
+          }
+          setIsCropperOpen(false);
+        }, "image/jpeg", 0.85);
+      }
     };
     img.src = cropSrc;
   };
@@ -436,15 +462,13 @@ export default function SignupDetailsPage() {
     }
   };
 
-
-
   // クロップ座標に基づくCSSスタイル生成ヘルパー
-  const getCroppedImgStyle = (cropPos, containerSize = 90) => {
-    if (!cropPos) return { width: "100%", height: "100%", objectFit: "cover" };
+  const getCroppedImgStyle = (cropPos: any, containerSize = 90) => {
+    if (!cropPos) return { width: "100%", height: "100%", objectFit: "cover" as const };
     // クロップ時のビューポート内のサークル基準(200px)に対する倍率
     const ratio = containerSize / 200;
     return {
-      position: "absolute",
+      position: "absolute" as const,
       left: `${(cropPos.offsetX - 40) * ratio}px`,
       top: `${(cropPos.offsetY - 40) * ratio}px`,
       width: `${(cropPos.displayW * cropPos.zoom) * ratio}px`,
@@ -454,7 +478,7 @@ export default function SignupDetailsPage() {
   };
 
   // プロフィール情報登録の送信処理
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (accountType === "general") {
@@ -487,11 +511,12 @@ export default function SignupDetailsPage() {
           imageUrl = await getDownloadURL(uploadResult.ref);
         } catch (imgErr) {
           console.error("Profile image upload failed:", imgErr);
-          throw new Error("プロフィールの画像のアップロードに失敗しました: " + imgErr.message);
+          const message = imgErr instanceof Error ? imgErr.message : String(imgErr);
+          throw new Error("プロフィールの画像のアップロードに失敗しました: " + message);
         }
       }
 
-      const payload = {
+      const payload: any = {
         lastName: formData.lastName,
         firstName: formData.firstName,
         lastNameKana: formData.lastNameKana,
@@ -531,12 +556,12 @@ export default function SignupDetailsPage() {
       setStep(3);
     } catch (err) {
       console.error("Submit profile error:", err);
-      setError(err.message || "情報の登録に失敗しました。時間をおいてもう一度お試しください。");
+      const message = err instanceof Error ? err.message : "情報の登録に失敗しました。時間をおいてもう一度お試しください。";
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
   };
-
 
   // 進捗バーの描画
   const renderProgressBar = () => {
@@ -588,7 +613,6 @@ export default function SignupDetailsPage() {
           </div>
           <span className={styles.logoText}>マチアプ</span>
         </div>
-
       </header>
 
       {/* ステップ進捗バー */}
@@ -653,6 +677,7 @@ export default function SignupDetailsPage() {
                 >
                   <div className={styles.avatarCircle}>
                     {avatarPreview ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img 
                         src={avatarPreview} 
                         alt="プロフィール画像" 
@@ -1060,6 +1085,7 @@ export default function SignupDetailsPage() {
             <div className={styles.successContainer}>
               <div className={styles.successIconWrapper} style={{ overflow: "hidden", position: "relative" }}>
                 {avatarPreview ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img 
                     src={avatarPreview} 
                     alt="プロフィール画像" 
@@ -1105,6 +1131,7 @@ export default function SignupDetailsPage() {
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={cropSrc}
                 alt="Crop Target"

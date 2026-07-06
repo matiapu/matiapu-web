@@ -4,8 +4,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThumbsUp } from '@fortawesome/free-solid-svg-icons';
 import styles from './NiceBadButton.module.css'
 
+interface NiceButtonProps {
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  isLiked?: boolean;
+}
 
-function NiceButton({ onClick, isLiked = false }) {
+function NiceButton({ onClick, isLiked = false }: NiceButtonProps) {
   return (
     <div>
         <button 

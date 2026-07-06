@@ -5,11 +5,16 @@ import styles from './CommentInput.module.css';
 import { createComment } from '@/src/firebase/commentDb';
 import { auth } from '@/src/firebase/firebase';
 
-function CommentInput({ postId, onCommentSubmitted }) {
+interface CommentInputProps {
+  postId: string;
+  onCommentSubmitted?: () => void;
+}
+
+function CommentInput({ postId, onCommentSubmitted }: CommentInputProps) {
   const [commentText, setCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleKeyDown = async (e) => {
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && commentText.trim() && !isSubmitting) {
       e.preventDefault();
       setIsSubmitting(true);

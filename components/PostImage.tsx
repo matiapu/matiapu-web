@@ -2,8 +2,13 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from '@/components/PostImage.module.css';
+import { Post as UIPost } from '@/data/posts';
 
-function PostImage({ posts = [] }) {
+interface PostImageProps {
+  posts?: UIPost[];
+}
+
+function PostImage({ posts = [] }: PostImageProps) {
   if (!posts || posts.length === 0) {
     return (
       <div className={styles.emptyGridState}>

@@ -6,8 +6,20 @@ import styles from './CommentSection.module.css'
 import { getCommentsForPost } from '@/src/firebase/commentDb'
 import { getUserProfile } from '@/src/firebase/userDb'
 
-function CommentSection({ postId }) {
-  const [comments, setComments] = useState([]);
+interface CommentSectionProps {
+  postId: string;
+}
+
+interface CommentData {
+  id: string;
+  name: string;
+  userIcon: string;
+  content: string;
+  createAt: string;
+}
+
+function CommentSection({ postId }: CommentSectionProps) {
+  const [comments, setComments] = useState<CommentData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,8 +30,8 @@ function CommentSection({ postId }) {
         const fetchedComments = await getCommentsForPost(postId, { rootOnly: true });
         
         // コメント投稿者のプロフィールをロード
-        const uids = Array.from(new Set(fetchedComments.map(c => c.author_uid).filter(Boolean)));
-        const userProfiles = {};
+        const uids = Array.from(new Set(fetchedComments.map(c => c.author_uid).filter(Boolean))) as string[];
+        const userProfiles: Record<string, any> = {};
         
         await Promise.all(
           uids.map(async (uid) => {

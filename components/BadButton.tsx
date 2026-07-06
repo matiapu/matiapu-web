@@ -5,7 +5,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import React from 'react'
 import styles from './NiceBadButton.module.css'
 
-function BadButton({ onClick, isDisliked = false }) {
+interface BadButtonProps {
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  isDisliked?: boolean;
+}
+
+function BadButton({ onClick, isDisliked = false }: BadButtonProps) {
   return (
     <div>
         <button 

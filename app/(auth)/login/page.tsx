@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -23,15 +24,20 @@ export default function LoginPage() {
   // 現在の時刻に基づいて時間帯（朝・昼・夜）を判定
   useEffect(() => {
     const hours = new Date().getHours();
-    if (hours >= 5 && hours < 11) {
-      setTimeOfDay("morning");
-    } else if (hours >= 11 && hours < 18) {
-      setTimeOfDay("noon");
-    } else {
-      // 夜の場合は通常夜(night)とランダム夜(night2)を判定
-      const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
-      setTimeOfDay(isNight2 ? "night2" : "night");
-    }
+
+    // 処理が忙しくなっちゃうから、一旦落ち着かせてあげる setTimeout をかませた
+    const timer = setTimeout(() => {
+      if (hours >= 5 && hours < 11) {
+        setTimeOfDay("morning");
+      } else if (hours >= 11 && hours < 18) {
+        setTimeOfDay("noon");
+      } else {
+        // 夜の場合は通常夜(night)とランダム夜(night2)を判定
+        const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
+        setTimeOfDay(isNight2 ? "night2" : "night");
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // すでにセッションCookieがある場合はトップページへリダイレクト
@@ -43,7 +49,7 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError("メールアドレスとパスワードを入力してください。");
@@ -60,21 +66,22 @@ export default function LoginPage() {
 
       // セッションCookieを作成
       const expireTime = 60 * 60 * 24; // 1日
-      document.cookie = `session=${encodeURIComponent(user.email)}; path=/; max-age=${expireTime}; SameSite=Lax;`;
+      document.cookie = `session=${encodeURIComponent(user.email || "")}; path=/; max-age=${expireTime}; SameSite=Lax;`;
 
       // 遷移してリフレッシュ
       router.push("/");
       router.refresh();
     } catch (err) {
       console.error("Login error:", err);
+      const firebaseError = err as { code?: string };
       // エラーハンドリング
       if (
-        err.code === "auth/invalid-credential" || 
-        err.code === "auth/user-not-found" || 
-        err.code === "auth/wrong-password"
+        firebaseError.code === "auth/invalid-credential" || 
+        firebaseError.code === "auth/user-not-found" || 
+        firebaseError.code === "auth/wrong-password"
       ) {
         setError("メールアドレスまたはパスワードが正しくありません。");
-      } else if (err.code === "auth/too-many-requests") {
+      } else if (firebaseError.code === "auth/too-many-requests") {
         setError("ログイン試行が多すぎます。しばらく経ってから再試行してください。");
       } else {
         setError("ログインに失敗しました。通信状況などを確認してください。");
@@ -84,7 +91,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleSocialLogin = async (providerName) => {
+  const handleSocialLogin = async (providerName: "google" | "apple") => {
     setIsSubmitting(true);
     setError("");
     const provider = providerName === "google" ? googleProvider : appleProvider;
@@ -103,7 +110,8 @@ export default function LoginPage() {
       router.refresh();
     } catch (err) {
       console.error("Social login error:", err);
-      if (err.code !== "auth/popup-closed-by-user") {
+      const firebaseError = err as { code?: string };
+      if (firebaseError.code !== "auth/popup-closed-by-user") {
         setError(`${providerName === "google" ? "Google" : "Apple"}でのログインに失敗しました。`);
       }
     } finally {
@@ -116,10 +124,9 @@ export default function LoginPage() {
       {/* ヘッダー */}
       <header className={styles.header}>
         <div className={styles.logoArea} onClick={() => router.push("/")}>
-          <img src="/logo.png" alt="マチアプ" className={styles.logoImage} />
+          <Image src="/logo.png" alt="マチアプ" className={styles.logoImage} width={48} height={48} />
           <span className={styles.logoText}>マチアプ</span>
         </div>
-
       </header>
 
       {/* メインコンテンツ */}
@@ -205,7 +212,7 @@ export default function LoginPage() {
               Googleでログイン
             </button>
             <button type="button" onClick={() => handleSocialLogin("apple")} className={`${styles.socialButton} ${styles.appleButton}`} disabled={isSubmitting}>
-              <img src="/apple_rainbow.svg" alt="Apple logo" className={styles.socialIcon} style={{ width: "16px", height: "16px" }} />
+              <Image src="/apple_rainbow.svg" alt="Apple logo" className={styles.socialIcon} style={{ width: "16px", height: "16px" }} width={16} height={16} />
               Appleでサインイン
             </button>
           </div>
