@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -19,15 +20,18 @@ export default function SignupPage() {
   // 現在の時刻に基づいて時間帯（朝・昼・夜）を判定
   useEffect(() => {
     const hours = new Date().getHours();
-    if (hours >= 5 && hours < 11) {
-      setTimeOfDay("morning");
-    } else if (hours >= 11 && hours < 18) {
-      setTimeOfDay("noon");
-    } else {
-      // 夜の場合は通常夜(night)とランダム夜(night2)を判定
-      const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
-      setTimeOfDay(isNight2 ? "night2" : "night");
-    }
+    const timer = setTimeout(() => {
+      if (hours >= 5 && hours < 11) {
+        setTimeOfDay("morning");
+      } else if (hours >= 11 && hours < 18) {
+        setTimeOfDay("noon");
+      } else {
+        // 夜の場合は通常夜(night)とランダム夜(night2)を判定
+        const isNight2 = Math.random() < 0.3; // 30%の確率でnight-2.avifを表示
+        setTimeOfDay(isNight2 ? "night2" : "night");
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
   
   // 画面ステップ管理 ('register': アカウント作成フォーム, 'verify': メール認証待機画面)
@@ -303,7 +307,7 @@ export default function SignupPage() {
       {/* ヘッダー */}
       <header className={styles.header}>
         <div className={styles.logoArea} onClick={() => router.push("/")}>
-          <img src="/logo.png" alt="マチアプ" className={styles.logoImage} />
+          <Image src="/logo.png" alt="マチアプ" className={styles.logoImage} width={48} height={48} />
           <span className={styles.logoText}>マチアプ</span>
         </div>
       </header>
@@ -460,7 +464,7 @@ export default function SignupPage() {
                   Googleで登録
                 </button>
                 <button type="button" onClick={() => handleSocialSignup("apple")} className={`${styles.socialButton} ${styles.appleButton}`} disabled={isSubmitting}>
-                  <img src="/apple_rainbow.svg" alt="Apple logo" className={styles.socialIcon} style={{ width: "16px", height: "16px" }} />
+                  <Image src="/apple_rainbow.svg" alt="Apple logo" className={styles.socialIcon} style={{ width: "16px", height: "16px" }} width={16} height={16} />
                   Appleでサインアップ
                 </button>
               </div>
