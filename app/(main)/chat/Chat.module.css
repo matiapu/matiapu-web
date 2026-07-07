@@ -152,7 +152,43 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #ffffff;
+  position: relative;
+  /* 背景を透過して擬似要素を見せる */
+  background-color: transparent;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* 自然背景写真とぼかしの適用（スクロールしても固定） */
+.chatArea::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/back_image/noon.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(8px) brightness(1.02);
+  /* ぼかしによる端のモヤ漏れを防ぐため、少し拡大配置する */
+  transform: scale(1.05);
+  z-index: -2;
+  pointer-events: none;
+}
+
+/* 文字可読性を高めるためのホワイト透過レイヤー */
+.chatArea::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(248, 250, 252, 0.65); /* メッセージがはっきり読める半透明度 */
+  z-index: -1;
+  pointer-events: none;
 }
 
 .chatHeader {
@@ -224,28 +260,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  position: relative;
-  /* 木漏れ日の揺らめきを演出するグラデーション */
-  background-color: #f2f6f3;
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.45) 0%, transparent 45%),
-    radial-gradient(circle at 90% 80%, rgba(220, 238, 225, 0.4) 0%, transparent 50%),
-    radial-gradient(circle at 50% 10%, rgba(254, 254, 230, 0.35) 0%, transparent 40%),
-    radial-gradient(circle at 30% 90%, rgba(255, 255, 255, 0.3) 0%, transparent 35%);
-  background-size: 200% 200%;
-  animation: komorebi 25s infinite alternate ease-in-out;
-}
-
-@keyframes komorebi {
-  0% {
-    background-position: 0% 0%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 50% 100%;
-  }
+  background-color: transparent;
 }
 
 .dateDivider {
