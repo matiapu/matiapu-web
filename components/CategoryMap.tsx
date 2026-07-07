@@ -266,6 +266,7 @@ function CategoryMap() {
   const [isInteracted, setIsInteracted] = useState(false);
   const [isMapActive, setIsMapActive] = useState(false);
 
+
   useEffect(() => {
     if (isInteracted) return;
 
@@ -670,6 +671,8 @@ function CategoryMap() {
                 </div>
               </div>
             )}
+
+
 
             <Map
               defaultCenter={{ lat: 35.681228, lng: 139.767052 }}

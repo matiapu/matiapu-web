@@ -372,8 +372,6 @@
   align-items: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(4px); /* ぼかし効果 */
-  -webkit-backdrop-filter: blur(4px);
 }
 
 .mapOverlay:hover {
@@ -429,4 +427,6 @@
     transform: scale(1);
   }
 }
+
+
 
