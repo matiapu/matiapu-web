@@ -60,6 +60,28 @@ export default function ChatPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
+  // 葉っぱの枯れ具合更新のための現在時刻ステート (10秒ごとに更新)
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 経過時間に応じた枯れ具合ステージを取得
+  const getLeafStage = (createdAt: Date) => {
+    const diffMs = now - createdAt.getTime();
+    const diffMins = diffMs / 1000 / 60;
+    if (diffMins < 1) {
+      return "fresh";
+    } else if (diffMins < 3) {
+      return "yellowing";
+    } else {
+      return "withered";
+    }
+  };
+
   // チャットスレッド一覧とメッセージ履歴
   const [rooms, setRooms] = useState<any[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -317,6 +339,22 @@ export default function ChatPage() {
     setIsSending(true);
 
     try {
+      if (selectedRoomId === "debug_room") {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `msg_debug_${Date.now()}`,
+            sender_id: "me",
+            is_system: false,
+            content_text: userText,
+            created_at: new Date(),
+            isRead: false
+          }
+        ]);
+        setIsSending(false);
+        return;
+      }
+
       const activeRoom = rooms.find((r) => r.id === selectedRoomId);
       if (!activeRoom) {
         setIsSending(false);
@@ -427,7 +465,61 @@ export default function ChatPage() {
         <div style={{ textAlign: "center" }}>
           <h3 style={{ color: "#0f172a", marginBottom: "8px" }}>ログインが必要です</h3>
           <p style={{ color: "#64748b", marginBottom: "16px" }}>チャット機能を利用するにはログインしてください。</p>
-          <Link href="/login" style={{ padding: "8px 16px", backgroundColor: "#0052cc", color: "white", borderRadius: "6px", textDecoration: "none" }}>ログイン画面へ</Link>
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+            <Link href="/login" style={{ padding: "8px 16px", backgroundColor: "#0052cc", color: "white", borderRadius: "6px", textDecoration: "none" }}>ログイン画面へ</Link>
+            <button 
+              onClick={() => {
+                setCurrentUser({ uid: "me", displayName: "デバッグユーザー" });
+                setRooms([{
+                  id: "debug_room",
+                  partnerUid: "partner",
+                  partnerName: "ひなた (パートナー)",
+                  avatar: "/user_Icon/user_icon1.jpg",
+                  online: true,
+                  lastActive: "15:00",
+                  unreadCount: 0,
+                  lastMessageText: "葉っぱチャットのテスト中！"
+                }]);
+                setSelectedRoomId("debug_room");
+                setMessages([
+                  {
+                    id: "msg_withered",
+                    sender_id: "partner",
+                    is_system: false,
+                    content_text: "これは3分以上前に送信されたメッセージです（枯れ葉デザイン）。",
+                    created_at: new Date(Date.now() - 4 * 60 * 1000),
+                    isRead: true
+                  },
+                  {
+                    id: "msg_yellowing",
+                    sender_id: "me",
+                    is_system: false,
+                    content_text: "これは1分半前に送信したメッセージです（黄色い葉っぱデザイン）。",
+                    created_at: new Date(Date.now() - 90 * 1000),
+                    isRead: true
+                  },
+                  {
+                    id: "msg_fresh",
+                    sender_id: "partner",
+                    is_system: false,
+                    content_text: "これは送信直後（1分未満）のメッセージです（新鮮な緑の葉っぱデザイン）。",
+                    created_at: new Date(Date.now() - 10 * 1000),
+                    isRead: false
+                  }
+                ]);
+              }}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "#10b981",
+                color: "white",
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer"
+              }}
+            >
+              デバッグ表示（モックデータ）
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -549,12 +641,16 @@ export default function ChatPage() {
                         />
                       )}
                       <div className={styles.bubbleContainer}>
-                        <div
-                          className={`${styles.bubble} ${
+                        {(() => {
+                          const leafStage = getLeafStage(msg.created_at);
+                          const leafBubbleClass = `${styles.bubble} ${
                             isMe ? styles.outgoingBubble : styles.incomingBubble
-                          }`}
-                        >
-                          {(msg.image_url || msg.image_deleted) && (
+                          } ${styles[`leaf-${leafStage}`]} ${
+                            isMe ? styles[`leaf-outgoing-${leafStage}`] : styles[`leaf-incoming-${leafStage}`]
+                          }`;
+                          return (
+                            <div className={leafBubbleClass}>
+                              {(msg.image_url || msg.image_deleted) && (
                             isImageExpired(msg) || msg.image_deleted ? (
                               <div 
                                 className={styles.expiredImagePlaceholder}
@@ -602,6 +698,8 @@ export default function ChatPage() {
                           )}
                           {msg.content_text && <p style={{ margin: 0 }}>{msg.content_text}</p>}
                         </div>
+                      );
+                    })()}
                       </div>
                       <div
                         className={`${styles.metaContainer} ${
