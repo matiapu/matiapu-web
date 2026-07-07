@@ -722,13 +722,13 @@
 }
 
 .expiredImagePlaceholder {
-  background-color: #f1f5f9;
-  border: 1px dashed #cbd5e1;
+  background-color: #f7f5f4;
+  border: 1px dashed #c2b280;
   border-radius: 8px;
   padding: 10px 14px;
   max-width: 250px;
-  font-size: 12px;
-  color: #64748b;
+  font-size: 11px;
+  color: #8d6e63;
   display: flex;
   align-items: center;
   gap: 8px;

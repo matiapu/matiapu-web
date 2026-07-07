@@ -483,6 +483,16 @@ export default function ChatPage() {
                 setSelectedRoomId("debug_room");
                 setMessages([
                   {
+                    id: "msg_expired_image",
+                    sender_id: "partner",
+                    is_system: false,
+                    content_text: "これは1週間以上前に添付された画像付きメッセージのモックです。",
+                    image_url: "dummy_image.jpg",
+                    image_deleted: true,
+                    created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+                    isRead: true
+                  },
+                  {
                     id: "msg_withered",
                     sender_id: "partner",
                     is_system: false,
@@ -656,7 +666,7 @@ export default function ChatPage() {
                                 className={styles.expiredImagePlaceholder}
                                 style={{ marginBottom: msg.content_text ? "8px" : "0" }}
                               >
-                                <span>⚠️ 送信から1週間経過したため画像は非表示になりました</span>
+                                <span>🐛 画像は虫に食べられちゃった！（送信から1週間経過）</span>
                               </div>
                             ) : (
                               msg.image_url && msg.image_url.includes("shared_emojis") ? (
