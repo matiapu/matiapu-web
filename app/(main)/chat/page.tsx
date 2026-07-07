@@ -339,22 +339,6 @@ export default function ChatPage() {
     setIsSending(true);
 
     try {
-      if (selectedRoomId === "debug_room") {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `msg_debug_${Date.now()}`,
-            sender_id: "me",
-            is_system: false,
-            content_text: userText,
-            created_at: new Date(),
-            isRead: false
-          }
-        ]);
-        setIsSending(false);
-        return;
-      }
-
       const activeRoom = rooms.find((r) => r.id === selectedRoomId);
       if (!activeRoom) {
         setIsSending(false);
@@ -465,71 +449,7 @@ export default function ChatPage() {
         <div style={{ textAlign: "center" }}>
           <h3 style={{ color: "#0f172a", marginBottom: "8px" }}>ログインが必要です</h3>
           <p style={{ color: "#64748b", marginBottom: "16px" }}>チャット機能を利用するにはログインしてください。</p>
-          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-            <Link href="/login" style={{ padding: "8px 16px", backgroundColor: "#0052cc", color: "white", borderRadius: "6px", textDecoration: "none" }}>ログイン画面へ</Link>
-            <button 
-              onClick={() => {
-                setCurrentUser({ uid: "me", displayName: "デバッグユーザー" });
-                setRooms([{
-                  id: "debug_room",
-                  partnerUid: "partner",
-                  partnerName: "ひなた (パートナー)",
-                  avatar: "/user_Icon/user_icon1.jpg",
-                  online: true,
-                  lastActive: "15:00",
-                  unreadCount: 0,
-                  lastMessageText: "葉っぱチャットのテスト中！"
-                }]);
-                setSelectedRoomId("debug_room");
-                setMessages([
-                  {
-                    id: "msg_expired_image",
-                    sender_id: "partner",
-                    is_system: false,
-                    content_text: "これは1週間以上前に添付された画像付きメッセージのモックです。",
-                    image_url: "dummy_image.jpg",
-                    image_deleted: true,
-                    created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
-                    isRead: true
-                  },
-                  {
-                    id: "msg_withered",
-                    sender_id: "partner",
-                    is_system: false,
-                    content_text: "これは3分以上前に送信されたメッセージです（枯れ葉デザイン）。",
-                    created_at: new Date(Date.now() - 4 * 60 * 1000),
-                    isRead: true
-                  },
-                  {
-                    id: "msg_yellowing",
-                    sender_id: "me",
-                    is_system: false,
-                    content_text: "これは1分半前に送信したメッセージです（黄色い葉っぱデザイン）。",
-                    created_at: new Date(Date.now() - 90 * 1000),
-                    isRead: true
-                  },
-                  {
-                    id: "msg_fresh",
-                    sender_id: "partner",
-                    is_system: false,
-                    content_text: "これは送信直後（1分未満）のメッセージです（新鮮な緑の葉っぱデザイン）。",
-                    created_at: new Date(Date.now() - 10 * 1000),
-                    isRead: false
-                  }
-                ]);
-              }}
-              style={{
-                padding: "8px 16px",
-                backgroundColor: "#10b981",
-                color: "white",
-                borderRadius: "6px",
-                border: "none",
-                cursor: "pointer"
-              }}
-            >
-              デバッグ表示（モックデータ）
-            </button>
-          </div>
+          <Link href="/login" style={{ padding: "8px 16px", backgroundColor: "#0052cc", color: "white", borderRadius: "6px", textDecoration: "none" }}>ログイン画面へ</Link>
         </div>
       </div>
     );
