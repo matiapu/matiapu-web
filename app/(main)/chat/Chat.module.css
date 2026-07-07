@@ -854,19 +854,19 @@
 /* そよ風の揺らぎ（枯れ葉用 - 自分） */
 @keyframes breeze-withered {
   0%, 100% {
-    transform: scale(0.96) rotate(1.2deg);
+    transform: scale(0.96);
   }
   50% {
-    transform: scale(0.96) rotate(1.8deg) translate(0.1px, -0.1px);
+    transform: scale(0.96) translate(0.1px, -0.1px);
   }
 }
 
 /* そよ風の揺らぎ（枯れ葉用 - 相手） */
 @keyframes breeze-withered-incoming {
   0%, 100% {
-    transform: scale(0.96) rotate(-1.2deg);
+    transform: scale(0.96);
   }
   50% {
-    transform: scale(0.96) rotate(-1.8deg) translate(-0.1px, 0.1px);
+    transform: scale(0.96) translate(-0.1px, 0.1px);
   }
 }
