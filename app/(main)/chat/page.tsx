@@ -15,6 +15,9 @@ import {
   decryptContent
 } from "@/src/firebase/chatDb";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { config } from "@fortawesome/fontawesome-svg-core";
+import "@fortawesome/fontawesome-svg-core/styles.css";
+config.autoAddCss = false; // Next.js + Webpackでのハイドレーションミスマッチ・DOM操作エラーの根本防止
 import {
   faPaperPlane,
   faImage,
