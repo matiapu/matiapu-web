@@ -29,22 +29,22 @@
 
 /* 背景画像クラス定義 */
 .pageWrapper:global(.morning)::before {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.3)), url('/back_image/morning.avif');
+  background-image: linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.3)), var(--bg-morning);
   opacity: 1;
 }
 
 .pageWrapper:global(.noon)::before {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.15)), url('/back_image/noon.avif');
+  background-image: linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.15)), var(--bg-noon);
   opacity: 1;
 }
 
 .pageWrapper:global(.night)::before {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45)), url('/back_image/night.avif');
+  background-image: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45)), var(--bg-night);
   opacity: 1;
 }
 
 .pageWrapper:global(.night2)::before {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45)), url('/back_image/night-2.avif');
+  background-image: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45)), var(--bg-night2);
   opacity: 1;
 }
 

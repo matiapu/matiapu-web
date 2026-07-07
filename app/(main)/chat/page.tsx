@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import styles from "./Chat.module.css";
+import backgroundUrls from "@/src/firebase/backgroundUrls.json";
 import Image from "next/image";
 import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
@@ -503,7 +504,12 @@ export default function ChatPage() {
 
       {/* 2. 右側チャットメインエリア */}
       {activeRoom ? (
-        <main className={styles.chatArea}>
+        <main
+          className={styles.chatArea}
+          style={{
+            "--chat-bg-url": `url(${backgroundUrls.chat_backimage || "/back_image/chat_backimage.avif"})`
+          } as React.CSSProperties}
+        >
           {/* ヘッダー部分 */}
           <header className={styles.chatHeader}>
             <div className={styles.chatPartnerInfo}>
