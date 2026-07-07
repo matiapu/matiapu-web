@@ -41,11 +41,11 @@ export default function Header() {
           <Link href="/posts/1" className={styles.navLink}>
             投稿
           </Link>
-          <Link href="/chat" className={styles.navLink}>
-            チャット
-          </Link>
           <Link href="/politicians/posts/1" className={styles.navLink}>
             議員
+          </Link>
+          <Link href="/chat" className={styles.navLink}>
+            チャット
           </Link>
           <button onClick={handleLogout} className={styles.logoutButton}>
             ログアウト
