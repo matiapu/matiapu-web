@@ -152,7 +152,43 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #ffffff;
+  position: relative;
+  /* 背景を透過して擬似要素を見せる */
+  background-color: transparent;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* 自然背景写真とぼかしの適用（スクロールしても固定） */
+.chatArea::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: var(--chat-bg-url);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(8px) brightness(1.02);
+  /* ぼかしによる端のモヤ漏れを防ぐため、少し拡大配置する */
+  transform: scale(1.05);
+  z-index: -2;
+  pointer-events: none;
+}
+
+/* 文字可読性を高めるためのホワイト透過レイヤー */
+.chatArea::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(248, 250, 252, 0.65); /* メッセージがはっきり読める半透明度 */
+  z-index: -1;
+  pointer-events: none;
 }
 
 .chatHeader {
@@ -221,10 +257,10 @@
   flex: 1;
   overflow-y: auto;
   padding: 24px;
-  background-color: #fafbfc;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  background-color: transparent;
 }
 
 .dateDivider {
@@ -300,18 +336,170 @@
   font-size: 14px;
   line-height: 1.5;
   word-break: break-all;
+  position: relative;
+  overflow: visible; /* 茎を外に表示するため */
+  transition: all 1.5s ease; /* 枯れていく様子の緩やかなアニメーション */
+  animation: breeze 16s infinite ease-in-out;
 }
 
 .incomingBubble {
   background-color: #f1f5f9;
   color: #1e293b;
   border-bottom-left-radius: 4px;
+  animation-delay: -3s; /* 揺らぎを非同期にする */
 }
 
 .outgoingBubble {
   background-color: #0052cc;
   color: #ffffff;
   border-bottom-right-radius: 4px;
+  animation-delay: -9s; /* 揺らぎを非同期にする */
+}
+
+/* --- Leaf & Withered Leaf Style Additions --- */
+
+/* 葉っぱの基本形状（ティアドロップ型） */
+.leaf-fresh.outgoingBubble,
+.leaf-yellowing.outgoingBubble {
+  border-radius: 28px 0 28px 28px;
+}
+.leaf-fresh.incomingBubble,
+.leaf-yellowing.incomingBubble {
+  border-radius: 0 28px 28px 28px;
+}
+
+/* 葉脈の表現（全ステージ共通） */
+.bubble::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  pointer-events: none;
+  z-index: 1;
+  transition: background-color 1.5s ease;
+}
+
+/* 茎の表現 */
+.bubble::after {
+  content: '';
+  position: absolute;
+  width: 3px;
+  height: 10px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: -1;
+  transition: background-color 1.5s ease, transform 1.5s ease;
+}
+
+/* 自分の茎の位置 */
+.outgoingBubble::after {
+  top: -5px;
+  right: -2px;
+  transform: rotate(35deg);
+}
+
+/* 相手の茎の位置 */
+.incomingBubble::after {
+  top: -5px;
+  left: -2px;
+  transform: rotate(-35deg);
+}
+
+/* === 新鮮な緑の葉 (Fresh) === */
+.leaf-fresh::before {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.leaf-fresh.incomingBubble::before {
+  background-color: rgba(6, 78, 59, 0.1);
+}
+
+.leaf-outgoing-fresh {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
+}
+.leaf-outgoing-fresh::after {
+  background-color: #047857;
+}
+
+.leaf-incoming-fresh {
+  background: linear-gradient(135deg, #a7f3d0, #6ee7b7) !important;
+  color: #064e3b !important;
+  box-shadow: 0 4px 10px rgba(110, 231, 183, 0.2);
+}
+.leaf-incoming-fresh::after {
+  background-color: #34d399;
+}
+
+/* === 黄色い葉 (Yellowing) === */
+.leaf-yellowing::before {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.leaf-yellowing.incomingBubble::before {
+  background-color: rgba(120, 53, 15, 0.1);
+}
+
+.leaf-outgoing-yellowing {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(217, 119, 6, 0.2);
+}
+.leaf-outgoing-yellowing::after {
+  background-color: #b45309;
+}
+
+.leaf-incoming-yellowing {
+  background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+  color: #78350f !important;
+  box-shadow: 0 4px 10px rgba(253, 230, 138, 0.15);
+}
+.leaf-incoming-yellowing::after {
+  background-color: #fbbf24;
+}
+
+/* === 枯れ葉 (Withered) === */
+.leaf-withered {
+  transform: scale(0.96);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 枯れ葉はカサカサして形が歪む */
+.leaf-withered.outgoingBubble {
+  border-radius: 24px 0 20px 24px / 20px 0 24px 20px;
+  animation: breeze-withered 14s infinite ease-in-out;
+  animation-delay: -2s;
+}
+.leaf-withered.incomingBubble {
+  border-radius: 0 24px 24px 20px / 0 20px 20px 24px;
+  animation: breeze-withered-incoming 14s infinite ease-in-out;
+  animation-delay: -7s;
+}
+
+.leaf-withered::before {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+.leaf-withered.incomingBubble::before {
+  background-color: rgba(93, 64, 55, 0.1);
+}
+
+.leaf-outgoing-withered {
+  background: linear-gradient(135deg, #a1887f, #8d6e63) !important;
+  color: #efebe9 !important;
+}
+.leaf-outgoing-withered::after {
+  background-color: #5d4037;
+  transform: rotate(40deg) scale(0.8);
+}
+
+.leaf-incoming-withered {
+  background: linear-gradient(135deg, #d7ccc8, #c2b280) !important;
+  color: #5d4037 !important;
+}
+.leaf-incoming-withered::after {
+  background-color: #8d6e63;
+  transform: rotate(-40deg) scale(0.8);
 }
 
 .metaContainer {
@@ -549,13 +737,13 @@
 }
 
 .expiredImagePlaceholder {
-  background-color: #f1f5f9;
-  border: 1px dashed #cbd5e1;
+  background-color: #f7f5f4;
+  border: 1px dashed #c2b280;
   border-radius: 8px;
   padding: 10px 14px;
   max-width: 250px;
-  font-size: 12px;
-  color: #64748b;
+  font-size: 11px;
+  color: #8d6e63;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -646,4 +834,39 @@
   user-select: none;
   -webkit-user-drag: none;
   -webkit-touch-callout: none;
+}
+
+/* === Natural Element Animating Styles === */
+
+/* そよ風の微細な揺らぎ（新鮮・黄色い葉用） */
+@keyframes breeze {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  33% {
+    transform: rotate(0.4deg) translate(0.3px, -0.2px);
+  }
+  66% {
+    transform: rotate(-0.3deg) translate(-0.3px, 0.2px);
+  }
+}
+
+/* そよ風の揺らぎ（枯れ葉用 - 自分） */
+@keyframes breeze-withered {
+  0%, 100% {
+    transform: scale(0.96);
+  }
+  50% {
+    transform: scale(0.96) translate(0.1px, -0.1px);
+  }
+}
+
+/* そよ風の揺らぎ（枯れ葉用 - 相手） */
+@keyframes breeze-withered-incoming {
+  0%, 100% {
+    transform: scale(0.96);
+  }
+  50% {
+    transform: scale(0.96) translate(-0.1px, 0.1px);
+  }
 }

@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import styles from "./Login.module.css";
+import backgroundUrls from "@/src/firebase/backgroundUrls.json";
 
 // Firebase Authのインポート
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
@@ -119,8 +120,15 @@ export default function LoginPage() {
     }
   };
 
+  const bgStyles = {
+    "--bg-morning": `url(${backgroundUrls.morning || "/back_image/morning.avif"})`,
+    "--bg-noon": `url(${backgroundUrls.noon || "/back_image/noon.avif"})`,
+    "--bg-night": `url(${backgroundUrls.night || "/back_image/night.avif"})`,
+    "--bg-night2": `url(${backgroundUrls["night-2"] || "/back_image/night-2.avif"})`,
+  } as React.CSSProperties;
+
   return (
-    <div className={`${styles.pageWrapper} ${timeOfDay}`}>
+    <div className={`${styles.pageWrapper} ${timeOfDay}`} style={bgStyles}>
       {/* ヘッダー */}
       <header className={styles.header}>
         <div className={styles.logoArea} onClick={() => router.push("/")}>
