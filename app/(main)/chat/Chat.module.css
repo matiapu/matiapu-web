@@ -221,10 +221,31 @@
   flex: 1;
   overflow-y: auto;
   padding: 24px;
-  background-color: #fafbfc;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  position: relative;
+  /* 木漏れ日の揺らめきを演出するグラデーション */
+  background-color: #f2f6f3;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.45) 0%, transparent 45%),
+    radial-gradient(circle at 90% 80%, rgba(220, 238, 225, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 50% 10%, rgba(254, 254, 230, 0.35) 0%, transparent 40%),
+    radial-gradient(circle at 30% 90%, rgba(255, 255, 255, 0.3) 0%, transparent 35%);
+  background-size: 200% 200%;
+  animation: komorebi 25s infinite alternate ease-in-out;
+}
+
+@keyframes komorebi {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 50% 100%;
+  }
 }
 
 .dateDivider {
@@ -303,18 +324,21 @@
   position: relative;
   overflow: visible; /* 茎を外に表示するため */
   transition: all 1.5s ease; /* 枯れていく様子の緩やかなアニメーション */
+  animation: breeze 16s infinite ease-in-out;
 }
 
 .incomingBubble {
   background-color: #f1f5f9;
   color: #1e293b;
   border-bottom-left-radius: 4px;
+  animation-delay: -3s; /* 揺らぎを非同期にする */
 }
 
 .outgoingBubble {
   background-color: #0052cc;
   color: #ffffff;
   border-bottom-right-radius: 4px;
+  animation-delay: -9s; /* 揺らぎを非同期にする */
 }
 
 /* --- Leaf & Withered Leaf Style Additions --- */
@@ -429,11 +453,13 @@
 /* 枯れ葉はカサカサして形が歪む */
 .leaf-withered.outgoingBubble {
   border-radius: 24px 0 20px 24px / 20px 0 24px 20px;
-  transform: scale(0.96) rotate(1.2deg);
+  animation: breeze-withered 14s infinite ease-in-out;
+  animation-delay: -2s;
 }
 .leaf-withered.incomingBubble {
   border-radius: 0 24px 24px 20px / 0 20px 20px 24px;
-  transform: scale(0.96) rotate(-1.2deg);
+  animation: breeze-withered-incoming 14s infinite ease-in-out;
+  animation-delay: -7s;
 }
 
 .leaf-withered::before {
@@ -793,4 +819,39 @@
   user-select: none;
   -webkit-user-drag: none;
   -webkit-touch-callout: none;
+}
+
+/* === Natural Element Animating Styles === */
+
+/* そよ風の微細な揺らぎ（新鮮・黄色い葉用） */
+@keyframes breeze {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  33% {
+    transform: rotate(0.4deg) translate(0.3px, -0.2px);
+  }
+  66% {
+    transform: rotate(-0.3deg) translate(-0.3px, 0.2px);
+  }
+}
+
+/* そよ風の揺らぎ（枯れ葉用 - 自分） */
+@keyframes breeze-withered {
+  0%, 100% {
+    transform: scale(0.96) rotate(1.2deg);
+  }
+  50% {
+    transform: scale(0.96) rotate(1.8deg) translate(0.1px, -0.1px);
+  }
+}
+
+/* そよ風の揺らぎ（枯れ葉用 - 相手） */
+@keyframes breeze-withered-incoming {
+  0%, 100% {
+    transform: scale(0.96) rotate(-1.2deg);
+  }
+  50% {
+    transform: scale(0.96) rotate(-1.8deg) translate(-0.1px, 0.1px);
+  }
 }
