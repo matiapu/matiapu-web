@@ -257,12 +257,14 @@ function CategoryMap() {
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   const cardRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const [locations, setLocations] = useState<LocationItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInteracted, setIsInteracted] = useState(false);
+  const [isMapActive, setIsMapActive] = useState(false);
 
   useEffect(() => {
     if (isInteracted) return;
@@ -296,6 +298,25 @@ function CategoryMap() {
       window.removeEventListener('keydown', handleInteraction);
     };
   }, [isInteracted]);
+
+  // マップの外側がクリックされたら非アクティブにする
+  useEffect(() => {
+    if (!isMapActive) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        mapContainerRef.current &&
+        !mapContainerRef.current.contains(event.target as Node)
+      ) {
+        setIsMapActive(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isMapActive]);
 
   // マップの表示中心とズーム状態を管理
   const [mapCenter, setMapCenter] = useState(() => {
@@ -623,8 +644,33 @@ function CategoryMap() {
         </div>
         
         <APIProvider apiKey={API_KEY || ""}>
-          <div className={`${styles.mapContainer} ${isInteracted ? styles.mapContainerFullscreen : ""}`}>
-            
+          <div 
+            ref={mapContainerRef}
+            className={`${styles.mapContainer} ${isInteracted ? styles.mapContainerFullscreen : ""}`}
+          >
+            {/* マップが非アクティブな時のオーバーレイ */}
+            {!isMapActive && (
+              <div 
+                className={styles.mapOverlay} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMapActive(true);
+                }}
+              >
+                <div className={styles.mapOverlayInner}>
+                  <div className={styles.mapOverlayIcon}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="5" y="2" width="14" height="20" rx="7" />
+                      <path d="M12 2v6" />
+                      <path d="M5 10h14" />
+                    </svg>
+                  </div>
+                  <p className={styles.mapOverlayText}>クリックしてマップを操作</p>
+                  <span className={styles.mapOverlaySubtext}>クリックすると地図をズーム・移動できます</span>
+                </div>
+              </div>
+            )}
+
             <Map
               defaultCenter={{ lat: 35.681228, lng: 139.767052 }}
               defaultZoom={14}
@@ -634,7 +680,8 @@ function CategoryMap() {
                 mapTypeControl: false,
                 fullscreenControl: false,
                 streetViewControl: false,
-                zoomControl: true
+                zoomControl: isMapActive,
+                gestureHandling: isMapActive ? 'greedy' : 'none'
               }}
             >
               <MapController center={mapCenter} zoom={mapZoom} />
