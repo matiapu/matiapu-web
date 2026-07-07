@@ -1,0 +1,125 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  background-color: #f5f8ff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  text-align: center;
+}
+
+.card {
+  background-color: #ffffff;
+  padding: 56px 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 61, 179, 0.05);
+  max-width: 480px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.errorCode {
+  font-size: 80px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 16px;
+  letter-spacing: -2px;
+  background: linear-gradient(135deg, #003db3 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #003db3;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.5px;
+}
+
+.description {
+  font-size: 15px;
+  color: #57688c;
+  line-height: 1.6;
+  margin: 0 0 36px 0;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  justify-content: center;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #003db3;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s, transform 0.1s;
+  box-shadow: 0 4px 12px rgba(0, 61, 179, 0.25);
+  flex: 1;
+}
+
+.primaryButton:hover {
+  background-color: #002d85;
+  transform: translateY(-1px);
+}
+
+.primaryButton:active {
+  transform: translateY(0);
+}
+
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #003db3;
+  background-color: #ffffff;
+  border: 2px solid #003db3;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s, color 0.2s, transform 0.1s;
+  flex: 1;
+}
+
+.secondaryButton:hover {
+  background-color: #f0f4ff;
+  transform: translateY(-1px);
+}
+
+.secondaryButton:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 40px 24px;
+  }
+  .errorCode {
+    font-size: 64px;
+  }
+  .buttonGroup {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .primaryButton, .secondaryButton {
+    width: 100%;
+  }
+}
