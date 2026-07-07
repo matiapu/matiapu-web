@@ -73,7 +73,7 @@ export default function LoginPage() {
       router.push("/");
       router.refresh();
     } catch (err) {
-      console.error("Login error:", err);
+      console.warn("Login error:", err);
       const firebaseError = err as { code?: string };
       // エラーハンドリング
       if (
@@ -110,7 +110,7 @@ export default function LoginPage() {
       router.push("/");
       router.refresh();
     } catch (err) {
-      console.error("Social login error:", err);
+      console.warn("Social login error:", err);
       const firebaseError = err as { code?: string };
       if (firebaseError.code !== "auth/popup-closed-by-user") {
         setError(`${providerName === "google" ? "Google" : "Apple"}でのログインに失敗しました。`);
