@@ -1,12 +1,33 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/src/firebase/firebase";
+import { getUserProfile } from "@/src/firebase/userDb";
+import React, { useState, useEffect } from "react";
 import styles from "./SideNav.module.css";
 
 export default function SideNav() {
   const router = useRouter();
+  const [userType, setUserType] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const profile = await getUserProfile(user.uid);
+          if (profile) {
+            setUserType(profile.userType || "general");
+          }
+        } catch (e) {
+          console.error("Failed to load user profile in SideNav:", e);
+        }
+      } else {
+        setUserType(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -64,19 +85,21 @@ export default function SideNav() {
         <span className={styles.label}>投稿</span>
       </Link>
 
-      <Link href="/politicians/posts/1" className={styles.navItem}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          width={32}
-          height={32}
-          className={styles.iconImage}
-          fill="currentColor"
-        >
-          <path d="M16.5 12c1.38 0 2.49-1.12 2.49-2.5S17.88 7 16.5 7C15.12 7 14 8.12 14 9.5s1.12 2.5 2.5 2.5zM9 11c1.66 0 2.99-1.34 2.99-3S10.66 5 9 5C7.34 5 6 6.34 6 8s1.34 3 3 3zm7.5 3c-1.83 0-5.5.92-5.5 2.75V19h11v-2.25c0-1.83-3.67-2.75-5.5-2.75zM9 13c-2.33 0-7 1.17-7 3.5V19h7v-2.25c0-.85.35-2.52 2.5-3.55-.83-.12-1.66-.2-2.5-.2z" />
-        </svg>
-        <span className={styles.label}>議員</span>
-      </Link>
+      {userType !== "shop" && (
+        <Link href="/politicians/posts/1" className={styles.navItem}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width={32}
+            height={32}
+            className={styles.iconImage}
+            fill="currentColor"
+          >
+            <path d="M16.5 12c1.38 0 2.49-1.12 2.49-2.5S17.88 7 16.5 7C15.12 7 14 8.12 14 9.5s1.12 2.5 2.5 2.5zM9 11c1.66 0 2.99-1.34 2.99-3S10.66 5 9 5C7.34 5 6 6.34 6 8s1.34 3 3 3zm7.5 3c-1.83 0-5.5.92-5.5 2.75V19h11v-2.25c0-1.83-3.67-2.75-5.5-2.75zM9 13c-2.33 0-7 1.17-7 3.5V19h7v-2.25c0-.85.35-2.52 2.5-3.55-.83-.12-1.66-.2-2.5-.2z" />
+          </svg>
+          <span className={styles.label}>議員</span>
+        </Link>
+      )}
 
       <Link href="/chat" className={styles.navItem}>
         <svg

@@ -14,6 +14,7 @@ import { hasLikedPost, likePost, unlikePost } from '@/src/firebase/likeDb';
 import { handleUserLike, handleUserBad } from '@/src/firebase/matchDb';
 import { recordViewHistory } from '@/src/firebase/historyDb';
 import { auth } from '@/src/firebase/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { Post as UIPost } from '@/data/posts';
 
 interface PageProps {
@@ -35,6 +36,23 @@ function Page({ params }: PageProps) {
   const [isCompleted, setIsCompleted] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // 議員ユーザーがアクセスした場合は、投稿作成画面へリダイレクト
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const profile = await getUserProfile(user.uid);
+          if (profile?.userType === 'politician') {
+            router.push('/politicians/posts/create');
+          }
+        } catch (e) {
+          console.error("Failed to check user role:", e);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
 
   // 1. データベースからデータをフェッチ & 必要に応じて自動シードを実行
   useEffect(() => {
