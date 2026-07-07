@@ -14,6 +14,7 @@ export interface Post {
   userID: string;
   questionText: string;
   answerText: string | null;
+  authorUserType?: string;
 }
 
 export const POSTS: Post[] = [

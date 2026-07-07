@@ -59,6 +59,7 @@ function Profile() {
               userID: p.author_uid || "",
               questionText: p.questionText || "",
               answerText: p.answerText || null,
+              authorUserType: authorData?.userType
             };
           };
 
@@ -94,6 +95,7 @@ function Profile() {
                 userID: p.author_uid || "",
                 questionText: p.questionText || "",
                 answerText: p.answerText || null,
+                authorUserType: data?.userType
               };
             });
             console.log("[Antigravity] Formatted user's own posts:", formattedPosts);

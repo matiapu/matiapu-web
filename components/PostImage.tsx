@@ -29,7 +29,11 @@ function PostImage({ posts = [] }: PostImageProps) {
     <div className={styles.container}>
       <div className={styles.imageGrid}>
         {posts.map((post) => (
-          <Link key={post.id} href={`/posts/${post.id}`} className={styles.imageContainer}>
+          <Link 
+            key={post.id} 
+            href={post.authorUserType === 'politician' ? `/politicians/posts/${post.id}` : `/posts/${post.id}`} 
+            className={styles.imageContainer}
+          >
             <Image 
               src={post.image} 
               alt={post.title || "投稿画像"} 
