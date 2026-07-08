@@ -11,7 +11,8 @@ import SkipButton from '@/components/SkipButton';
 import { getPosts, createPost } from '@/src/firebase/postDb';
 import { getUserProfile } from '@/src/firebase/userDb';
 import { hasLikedPost, likePost, unlikePost } from '@/src/firebase/likeDb';
-import { handleUserLike, handleUserBad } from '@/src/firebase/matchDb';
+import { handleUserLike, handleUserBad, getMatchesForUser } from '@/src/firebase/matchDb';
+import { getOrCreateChatRoom, sendChatMessage } from '@/src/firebase/chatDb';
 import { recordViewHistory } from '@/src/firebase/historyDb';
 import { auth } from '@/src/firebase/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -86,6 +87,20 @@ function Page({ params }: PageProps) {
 
         // UIコンポーネント(PostCard)が期待するフォーマットにマッピング (非同期対応)
         const uid = auth.currentUser?.uid || "user1";
+
+        // ユーザーのマッチ情報を取得して、BADした議員を特定する
+        let badPoliticianUids: string[] = [];
+        if (auth.currentUser) {
+          try {
+            const matches = await getMatchesForUser(auth.currentUser.uid);
+            badPoliticianUids = matches
+              .filter(m => m.user_action === 'bad')
+              .map(m => m.politician_uid);
+          } catch (e) {
+            console.error("Failed to load matches for user in politicians page:", e);
+          }
+        }
+
         const mappedPosts = await Promise.all(
           fetchedPosts.map(async (p) => {
             const user = userProfiles[p.author_uid] || {};
@@ -119,8 +134,10 @@ function Page({ params }: PageProps) {
           })
         );
 
-        // 議員ユーザーの投稿のみ表示
-        const filteredPosts = mappedPosts.filter(p => p.authorUserType === 'politician');
+        // 議員ユーザーの投稿のみ表示、かつ自分がバッドした議員の投稿を除外
+        const filteredPosts = mappedPosts.filter(p => 
+          p.authorUserType === 'politician' && !badPoliticianUids.includes(p.userID)
+        );
         setPosts(filteredPosts);
       } catch (err) {
         console.error("Error fetching posts data from Firestore:", err);
@@ -261,6 +278,17 @@ function Page({ params }: PageProps) {
             tags: "プロフィール"
           });
         }
+      }
+
+      // 議員がいいねされた際のシステム通知チャット作成とメッセージ送信
+      try {
+        const currentUserProfile = await getUserProfile(uid);
+        const citizenName = currentUserProfile?.displayName || currentUserProfile?.nickname || "市民";
+        const systemRoomId = await getOrCreateChatRoom("system", currentPost.userID);
+        const notificationText = `一般市民の ${citizenName} さんから「いいね！」を受信しました。マッチングに向けて「投稿」メニューから該当市民の投稿をチェックし、いいねを返してみましょう！`;
+        await sendChatMessage(systemRoomId, "system", currentPost.userID, notificationText);
+      } catch (chatErr) {
+        console.error("Failed to send system notification chat room:", chatErr);
       }
     } catch (err) {
       console.error("Failed to process like matching in Firestore:", err);

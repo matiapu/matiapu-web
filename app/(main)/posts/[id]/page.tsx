@@ -12,9 +12,11 @@ import CommentSection from '@/components/CommentSection';
 import { getPosts } from '@/src/firebase/postDb';
 import { getUserProfile } from '@/src/firebase/userDb';
 import { hasLikedPost, likePost, unlikePost } from '@/src/firebase/likeDb';
+import { getMatchesForPolitician, handlePoliticianLike } from '@/src/firebase/matchDb';
 import { recordViewHistory } from '@/src/firebase/historyDb';
 import { auth, db } from '@/src/firebase/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { POSTS, Post as UIPost } from '@/data/posts';
 
 interface PageProps {
@@ -70,6 +72,23 @@ function Page({ params }: PageProps) {
 
         // UIコンポーネント(PostCard)が期待するフォーマットにマッピング (非同期対応)
         const uid = auth.currentUser?.uid || "user1";
+
+        // ログインユーザーが議員の場合、自分にいいねしてくれたユーザーのUID一覧を取得する
+        let likerUids: string[] = [];
+        if (auth.currentUser) {
+          try {
+            const currentProfile = await getUserProfile(auth.currentUser.uid);
+            if (currentProfile?.userType === 'politician') {
+              const matches = await getMatchesForPolitician(auth.currentUser.uid);
+              likerUids = matches
+                .filter(m => m.user_action === 'like' && m.status === 'pending')
+                .map(m => m.user_uid);
+            }
+          } catch (e) {
+            console.error("Failed to check matches for politician:", e);
+          }
+        }
+
         const mappedPosts = await Promise.all(
           fetchedPosts.map(async (p) => {
             const user = userProfiles[p.author_uid] || {};
@@ -98,7 +117,8 @@ function Page({ params }: PageProps) {
               answerText: p.answerText || null,
               isLiked: isLiked,
               isDisliked: false,
-              authorUserType: user.userType
+              authorUserType: user.userType,
+              likedMe: likerUids.includes(p.author_uid)
             };
           })
         );
@@ -251,6 +271,14 @@ function Page({ params }: PageProps) {
     try {
       if (newLiked) {
         await likePost(currentPost.postID, uid);
+        // 議員が一般ユーザーをいいねし返した場合にマッチング成功とする
+        if (currentPost.likedMe) {
+          try {
+            await handlePoliticianLike(uid, currentPost.userID);
+          } catch (e) {
+            console.error("Failed to register politician matching like:", e);
+          }
+        }
       } else {
         await unlikePost(currentPost.postID, uid);
       }

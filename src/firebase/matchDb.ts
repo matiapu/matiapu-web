@@ -109,13 +109,37 @@ async function processLike(
 
 /**
  * 汎用のBADアクション処理です。
- * 片方が「BAD」を押した場合はマッチング不成立となり、ドキュメントを即座に消去（物理削除）します。
+ * 片方が「BAD」を押した場合は、不成立としてアクションを記録します（物理削除から論理的な記録に変更）。
  */
-async function processBad(userUid: string, politicianUid: string): Promise<void> {
+async function processBad(userUid: string, politicianUid: string, byRole: "user" | "politician"): Promise<void> {
   try {
     const matchId = `${userUid}_${politicianUid}`;
     const matchRef = doc(db, "matches", matchId);
-    await deleteDoc(matchRef);
+    const matchSnap = await getDoc(matchRef);
+    const now = Timestamp.now();
+
+    if (!matchSnap.exists()) {
+      const newMatch: Match = {
+        user_uid: userUid,
+        politician_uid: politicianUid,
+        user_action: byRole === "user" ? "bad" : "none",
+        politician_action: byRole === "politician" ? "bad" : "none",
+        status: "pending",
+        created_at: now,
+        updated_at: now
+      };
+      await setDoc(matchRef, newMatch);
+    } else {
+      const updatedData: Partial<Match> = {
+        updated_at: now
+      };
+      if (byRole === "user") {
+        updatedData.user_action = "bad";
+      } else {
+        updatedData.politician_action = "bad";
+      }
+      await setDoc(matchRef, updatedData, { merge: true });
+    }
   } catch (err) {
     console.error("Error processing bad action in Firestore:", err);
     throw err;
@@ -152,24 +176,22 @@ export async function handlePoliticianLike(
 
 /**
  * 一般ユーザーが議員に対して「BAD」を押した時の処理です。
- * マッチングドキュメントを物理削除します。
  * 
  * @param userUid 一般ユーザーのUID
  * @param politicianUid 議員のUID
  */
 export async function handleUserBad(userUid: string, politicianUid: string): Promise<void> {
-  return processBad(userUid, politicianUid);
+  return processBad(userUid, politicianUid, "user");
 }
 
 /**
  * 議員が一般ユーザーに対して「BAD」を押した時の処理です。
- * マッチングドキュメントを物理削除します。
  * 
  * @param politicianUid 議員のUID
  * @param userUid 一般ユーザーのUID
  */
 export async function handlePoliticianBad(politicianUid: string, userUid: string): Promise<void> {
-  return processBad(userUid, politicianUid);
+  return processBad(userUid, politicianUid, "politician");
 }
 
 /**
