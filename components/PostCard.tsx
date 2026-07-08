@@ -42,6 +42,7 @@ function PostCard({ post }: PostCardProps) {
                     sizes="100vw"
                     className={styles.post_image}
                     unoptimized
+                    priority
                 />
 
                 {/* ユーザー情報 */}
@@ -62,12 +63,19 @@ function PostCard({ post }: PostCardProps) {
 
                     <h2>{post.title}</h2>
 
-                    <span className={styles.tag}>
-                        {post.tags}
-                    </span>
+                    <div className={styles.tagWrapper}>
+                      <span className={styles.tag}>
+                          {post.tags}
+                      </span>
+                      {post.likedMe && (
+                        <span className={styles.likedMeBadge}>
+                          あなたにいいね！しています
+                        </span>
+                      )}
+                    </div>
 
                     <div className={styles.content}>
-                        <p>{displayedContent}</p>
+                        <p style={{ whiteSpace: 'pre-wrap' }}>{displayedContent}</p>
 
                         {!isOpen && isLongContent && (
                             <button onClick={toggleOpen}>

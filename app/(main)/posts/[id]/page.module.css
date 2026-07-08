@@ -81,6 +81,16 @@
   margin: 20px auto;
 }
 
+.Politician_NiceBadButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 20px auto;
+}
+
 .loading {
   display: flex;
   justify-content: center;

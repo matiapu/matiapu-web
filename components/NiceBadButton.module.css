@@ -1,4 +1,4 @@
-.Up, .Down {
+.Up, .Down, .Skip {
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -23,12 +23,16 @@
   color: #f43f5e;
 }
 
-.Up:active, .Down:active {
+.Skip:hover {
+  color: #f59e0b;
+}
+
+.Up:active, .Down:active, .Skip:active {
   transform: scale(0.92) translateY(0);
 }
 
 @media (max-width: 768px) {
-  .Up, .Down {
+  .Up, .Down, .Skip {
     width: 50px;
     height: 50px;
     font-size: 1.1rem;

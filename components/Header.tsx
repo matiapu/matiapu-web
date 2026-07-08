@@ -6,11 +6,32 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 // Firebase Authのインポート
-import { signOut } from "firebase/auth";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/src/firebase/firebase";
+import { getUserProfile } from "@/src/firebase/userDb";
+import React, { useState, useEffect } from "react";
 
 export default function Header() {
   const router = useRouter();
+  const [userType, setUserType] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const profile = await getUserProfile(user.uid);
+          if (profile) {
+            setUserType(profile.userType || "general");
+          }
+        } catch (e) {
+          console.error("Failed to load user profile in Header:", e);
+        }
+      } else {
+        setUserType(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -41,11 +62,13 @@ export default function Header() {
           <Link href="/posts/1" className={styles.navLink}>
             投稿
           </Link>
+          {userType !== "shop" && (
+            <Link href="/politicians/posts/1" className={styles.navLink}>
+              議員
+            </Link>
+          )}
           <Link href="/chat" className={styles.navLink}>
             チャット
-          </Link>
-          <Link href="/politicians/matchs" className={styles.navLink}>
-            議員
           </Link>
           <button onClick={handleLogout} className={styles.logoutButton}>
             ログアウト

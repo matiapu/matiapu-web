@@ -59,6 +59,7 @@ function Profile() {
               userID: p.author_uid || "",
               questionText: p.questionText || "",
               answerText: p.answerText || null,
+              authorUserType: authorData?.userType
             };
           };
 
@@ -74,9 +75,10 @@ function Profile() {
           // Fetch user's posts
           try {
             const posts = await getPosts({ author_uid: currentUser.uid });
-            console.log("[Antigravity] User's own posts fetched:", posts);
+            const filteredDbPosts = posts.filter(p => p.tags !== 'プロフィール');
+            console.log("[Antigravity] User's own posts fetched:", filteredDbPosts);
             // Map posts to match the UI format of data/posts.js
-            const formattedPosts = posts.map((p, idx) => {
+            const formattedPosts = filteredDbPosts.map((p, idx) => {
               const contentText = p.content_text || "";
               return {
                 id: p.id || String(idx),
@@ -94,6 +96,7 @@ function Profile() {
                 userID: p.author_uid || "",
                 questionText: p.questionText || "",
                 answerText: p.answerText || null,
+                authorUserType: data?.userType
               };
             });
             console.log("[Antigravity] Formatted user's own posts:", formattedPosts);
@@ -227,7 +230,7 @@ function Profile() {
           <div className={styles.nameSection}>
             <h1 className={styles.userName}>{displayName}</h1>
             <span className={`${styles.roleBadge} ${styles[userType]}`}>
-              {userType === "politician" ? "議員" : userType === "shop" ? "加盟店" : "一般市民"}
+              {userType === "politician" ? "議員" : userType === "shop" ? "加盟店" : "一般"}
             </span>
           </div>
 

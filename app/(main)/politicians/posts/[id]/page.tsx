@@ -4,20 +4,19 @@ import React, { use, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import PostCard from '@/components/PostCard';
 import NoMorePosts from '@/components/NoMorePosts';
-import styles from "./page.module.css";
-import CommentInput from '@/components/CommentInput';
+import styles from '@/app/(main)/posts/[id]/page.module.css';
 import NiceButton from '@/components/NiceButton';
 import BadButton from '@/components/BadButton';
-import CommentSection from '@/components/CommentSection';
-import { getPosts } from '@/src/firebase/postDb';
+import SkipButton from '@/components/SkipButton';
+import { getPosts, createPost } from '@/src/firebase/postDb';
 import { getUserProfile } from '@/src/firebase/userDb';
 import { hasLikedPost, likePost, unlikePost } from '@/src/firebase/likeDb';
-import { getMatchesForPolitician, handlePoliticianLike } from '@/src/firebase/matchDb';
+import { handleUserLike, handleUserBad, getMatchesForUser } from '@/src/firebase/matchDb';
+import { getOrCreateChatRoom, sendChatMessage } from '@/src/firebase/chatDb';
 import { recordViewHistory } from '@/src/firebase/historyDb';
-import { auth, db } from '@/src/firebase/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { auth } from '@/src/firebase/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { POSTS, Post as UIPost } from '@/data/posts';
+import { Post as UIPost } from '@/data/posts';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -36,15 +35,31 @@ function Page({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [commentRefreshCount, setCommentRefreshCount] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // 議員ユーザーがアクセスした場合は、投稿作成画面へリダイレクト
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const profile = await getUserProfile(user.uid);
+          if (profile?.userType === 'politician') {
+            router.push('/politicians/posts/create');
+          }
+        } catch (e) {
+          console.error("Failed to check user role:", e);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
 
   // 1. データベースからデータをフェッチ & 必要に応じて自動シードを実行
   useEffect(() => {
     async function fetchData() {
       try {
-        // バックグラウンドでSeed APIを叩いて初期データを投入（既に存在する場合は上書き/マージされます）
+        // バックグラウンドでSeed APIを叩いて初期データを投入（既に存在する場合もあります）
         try {
           await fetch('/api/temp-seed');
         } catch (e) {
@@ -73,19 +88,16 @@ function Page({ params }: PageProps) {
         // UIコンポーネント(PostCard)が期待するフォーマットにマッピング (非同期対応)
         const uid = auth.currentUser?.uid || "user1";
 
-        // ログインユーザーが議員の場合、自分にいいねしてくれたユーザーのUID一覧を取得する
-        let likerUids: string[] = [];
+        // ユーザーのマッチ情報を取得して、BADした議員を特定する
+        let badPoliticianUids: string[] = [];
         if (auth.currentUser) {
           try {
-            const currentProfile = await getUserProfile(auth.currentUser.uid);
-            if (currentProfile?.userType === 'politician') {
-              const matches = await getMatchesForPolitician(auth.currentUser.uid);
-              likerUids = matches
-                .filter(m => m.user_action === 'like' && m.status === 'pending')
-                .map(m => m.user_uid);
-            }
+            const matches = await getMatchesForUser(auth.currentUser.uid);
+            badPoliticianUids = matches
+              .filter(m => m.user_action === 'bad')
+              .map(m => m.politician_uid);
           } catch (e) {
-            console.error("Failed to check matches for politician:", e);
+            console.error("Failed to load matches for user in politicians page:", e);
           }
         }
 
@@ -117,47 +129,15 @@ function Page({ params }: PageProps) {
               answerText: p.answerText || null,
               isLiked: isLiked,
               isDisliked: false,
-              authorUserType: user.userType,
-              likedMe: likerUids.includes(p.author_uid)
+              authorUserType: user.userType
             };
           })
         );
 
-        // ログインユーザーのプロファイルを事前に取得
-        const currentUserProfile = await getUserProfile(uid);
-        const currentUserType = currentUserProfile?.userType || 'general';
-
-        // 投稿一覧のフィルタリング (非表示制御と議員向け公開範囲制限)
-        const filteredPosts: LocalUIPost[] = [];
-        for (const p of mappedPosts) {
-          // 議員の投稿は除外
-          if (p.authorUserType === 'politician') continue;
-
-          // プロフィール投稿の処理
-          if (p.tags === 'プロフィール') {
-            // 一般ユーザーや店舗ユーザーにはプロフィール投稿を表示しない
-            if (currentUserType !== 'politician') continue;
-
-            // 議員ユーザーの場合は、この一般ユーザーが自分（議員）に「いいね」しているかチェック
-            try {
-              const matchId = `${p.userID}_${uid}`;
-              const matchDoc = await getDoc(doc(db, "matches", matchId));
-              if (matchDoc.exists()) {
-                const matchData = matchDoc.data();
-                // 一般ユーザーのアクションが 'like' の場合のみ閲覧を許可
-                if (matchData && matchData.user_action === 'like') {
-                  filteredPosts.push(p);
-                }
-              }
-            } catch (err) {
-              console.error("Error checking match status for profile post:", err);
-            }
-          } else {
-            // 通常の投稿は表示
-            filteredPosts.push(p);
-          }
-        }
-
+        // 議員ユーザーの投稿のみ表示、かつ自分がバッドした議員の投稿を除外
+        const filteredPosts = mappedPosts.filter(p => 
+          p.authorUserType === 'politician' && !badPoliticianUids.includes(p.userID)
+        );
         setPosts(filteredPosts);
       } catch (err) {
         console.error("Error fetching posts data from Firestore:", err);
@@ -196,7 +176,7 @@ function Page({ params }: PageProps) {
       // 存在しないIDの場合は最初の投稿を表示
       const timer = setTimeout(() => {
         setActiveIndex(0);
-        window.history.replaceState(null, '', `/posts/${posts[0].id}`);
+        window.history.replaceState(null, '', `/politicians/posts/${posts[0].id}`);
       }, 0);
       return () => clearTimeout(timer);
     }
@@ -215,8 +195,7 @@ function Page({ params }: PageProps) {
     if (index >= 0 && index < posts.length && index !== activeIndex) {
       setActiveIndex(index);
       const targetPostId = posts[index].id;
-      // Next.jsの再レンダリングを走らせずにURLだけをスムーズに更新
-      window.history.replaceState(null, '', `/posts/${targetPostId}`);
+      window.history.replaceState(null, '', `/politicians/posts/${targetPostId}`);
     }
   };
 
@@ -231,7 +210,7 @@ function Page({ params }: PageProps) {
           behavior: 'smooth'
         });
         setActiveIndex(index);
-        window.history.replaceState(null, '', `/posts/${posts[index].id}`);
+        window.history.replaceState(null, '', `/politicians/posts/${posts[index].id}`);
       }
     }
   };
@@ -248,80 +227,115 @@ function Page({ params }: PageProps) {
     }
   }, [activeIndex, posts]);
 
-  // いいねのアクション（遷移なし）
+  // 6. 次の投稿へ移動するヘルパー
+  const moveToNextPost = () => {
+    if (activeIndex < posts.length - 1) {
+      scrollToPost(activeIndex + 1);
+    } else {
+      setIsCompleted(true);
+    }
+  };
+
+  // いいねのアクション（マッチング登録 + 投稿いいね登録 + 次の投稿へ）
   const handleLike = async () => {
     if (activeIndex === -1 || posts.length === 0) return;
     const currentPost = posts[activeIndex];
-    const uid = auth.currentUser?.uid || "user1";
-    const newLiked = !currentPost.isLiked;
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
 
-    // UIを即座に更新する（楽観的アップデート）
+    // 楽観的アップデート
     setPosts(prev => prev.map((p, idx) => {
       if (idx === activeIndex) {
         return {
           ...p,
-          isLiked: newLiked,
-          likes: newLiked ? String(Number(p.likes) + 1) : String(Math.max(0, Number(p.likes) - 1)),
-          isDisliked: newLiked ? false : p.isDisliked // いいねした場合は「いまいち」を解除
+          isLiked: true,
+          isDisliked: false,
+          likes: String(Number(p.likes) + 1)
         };
       }
       return p;
     }));
 
     try {
-      if (newLiked) {
-        await likePost(currentPost.postID, uid);
-        // 議員が一般ユーザーをいいねし返した場合にマッチング成功とする
-        if (currentPost.likedMe) {
-          try {
-            await handlePoliticianLike(uid, currentPost.userID);
-          } catch (e) {
-            console.error("Failed to register politician matching like:", e);
-          }
+      // マッチング登録 (handleUserLike)
+      await handleUserLike(uid, currentPost.userID);
+      // 投稿そのもののいいね登録
+      await likePost(currentPost.postID, uid);
+
+      // いいねした一般ユーザーがこれまで投稿したことがないかチェック
+      const userPosts = await getPosts({ author_uid: uid });
+      if (userPosts.length === 0) {
+        const profile = await getUserProfile(uid);
+        if (profile) {
+          const nickname = profile.nickname || profile.displayName || "匿名ユーザー";
+          await createPost({
+            author_uid: uid,
+            user_badge: "一般",
+            title: `${nickname}さんのプロフィール`,
+            content_text: `${nickname}さんのプロフィールカードです。現在投稿はありません。`,
+            image_url: profile.profileImage || null,
+            status: "Public",
+            tags: "プロフィール"
+          });
         }
-      } else {
-        await unlikePost(currentPost.postID, uid);
+      }
+
+      // 議員がいいねされた際のシステム通知チャット作成とメッセージ送信
+      try {
+        const currentUserProfile = await getUserProfile(uid);
+        const citizenName = currentUserProfile?.displayName || currentUserProfile?.nickname || "市民";
+        const systemRoomId = await getOrCreateChatRoom("system", currentPost.userID);
+        const notificationText = `一般市民の ${citizenName} さんから「いいね！」を受信しました。マッチングに向けて「投稿」メニューから該当市民の投稿をチェックし、いいねを返してみましょう！`;
+        await sendChatMessage(systemRoomId, "system", currentPost.userID, notificationText);
+      } catch (chatErr) {
+        console.error("Failed to send system notification chat room:", chatErr);
       }
     } catch (err) {
-      console.error("Failed to toggle like in Firestore:", err);
-      // エラー時は元の状態にロールバック
-      setPosts(prev => prev.map((p, idx) => {
-        if (idx === activeIndex) {
-          return {
-            ...p,
-            isLiked: currentPost.isLiked,
-            likes: currentPost.likes,
-            isDisliked: currentPost.isDisliked
-          };
-        }
-        return p;
-      }));
+      console.error("Failed to process like matching in Firestore:", err);
     }
+
+    // 次の投稿へ移動
+    moveToNextPost();
   };
 
-  // いまいちのアクション（遷移なし）
-  const handleDislike = () => {
+  // いまいちのアクション（マッチング不成立登録 + いいね解除 + 次の投稿へ）
+  const handleDislike = async () => {
     if (activeIndex === -1 || posts.length === 0) return;
     const currentPost = posts[activeIndex];
-    const newDisliked = !currentPost.isDisliked;
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
 
+    // 楽観的アップデート
     setPosts(prev => prev.map((p, idx) => {
       if (idx === activeIndex) {
         return {
           ...p,
-          isDisliked: newDisliked,
-          isLiked: newDisliked ? false : p.isLiked, // いまいちした場合は「いいね」を解除
-          likes: (newDisliked && p.isLiked) ? String(Math.max(0, Number(p.likes) - 1)) : p.likes
+          isDisliked: true,
+          isLiked: false,
+          likes: p.isLiked ? String(Math.max(0, Number(p.likes) - 1)) : p.likes
         };
       }
       return p;
     }));
 
-    // もともといいねしていた場合は、いまいちの選択に伴いFirestore側のいいねを解除
-    if (newDisliked && currentPost.isLiked) {
-      const uid = auth.currentUser?.uid || "user1";
-      unlikePost(currentPost.postID, uid).catch(e => console.error("Failed to unlike on dislike:", e));
+    try {
+      // マッチング不成立登録 (handleUserBad)
+      await handleUserBad(uid, currentPost.userID);
+      // いいね解除
+      if (currentPost.isLiked) {
+        await unlikePost(currentPost.postID, uid);
+      }
+    } catch (err) {
+      console.error("Failed to process dislike matching in Firestore:", err);
     }
+
+    // 次の投稿へ移動
+    moveToNextPost();
+  };
+
+  // スキップのアクション（次の投稿へ）
+  const handleSkip = () => {
+    moveToNextPost();
   };
 
   if (loading) {
@@ -336,57 +350,31 @@ function Page({ params }: PageProps) {
 
   return (
     <div className={styles.container}>
-      {/* カルーセルコンテナ */}
+      {/* カルーセルコンテナ - 手動スワイプを無効化するため overflowX: 'hidden' */}
       <div 
         className={styles.scrollContainer} 
         ref={scrollContainerRef}
         onScroll={handleScroll}
+        style={{ overflowX: 'hidden' }}
       >
-        {posts.map((post, idx) => (
+        {posts.map((post) => (
           <div 
             key={post.id} 
             className={styles.cardWrapper}
             ref={el => { cardRefs.current[post.id] = el; }}
           >
-            {/* 左矢印ボタン (最初の投稿以外に表示) */}
-            {idx > 0 && (
-              <button 
-                className={`${styles.navButton} ${styles.prevButton}`} 
-                onClick={() => scrollToPost(idx - 1)}
-                aria-label="前の投稿へ"
-              >
-                ‹
-              </button>
-            )}
-            
+            {/* 手動次・戻るを禁止するため矢印ボタンは表示しません */}
             <PostCard post={post} />
-            
-            {/* 右矢印ボタン (最後の投稿以外に表示) */}
-            {idx < posts.length - 1 && (
-              <button 
-                className={`${styles.navButton} ${styles.nextButton}`} 
-                onClick={() => scrollToPost(idx + 1)}
-                aria-label="次の投稿へ"
-              >
-                ›
-              </button>
-            )}
           </div>
         ))}
       </div>
 
-      {/* アクションエリア */}
-      <div className={styles.Comment_NiceBadButton}>
-        <CommentInput 
-          postId={currentPost.postID} 
-          onCommentSubmitted={() => setCommentRefreshCount(prev => prev + 1)} 
-        />
+      {/* アクションエリア (コメント禁止対応 + スキップボタン追加) */}
+      <div className={styles.Politician_NiceBadButton}>
         <BadButton onClick={handleDislike} isDisliked={currentPost.isDisliked} />
+        <SkipButton onClick={handleSkip} />
         <NiceButton onClick={handleLike} isLiked={currentPost.isLiked} />
       </div>
-
-      {/* 現在アクティブな投稿に対応するコメントを表示 */}
-      <CommentSection key={`${currentPost.postID}-${commentRefreshCount}`} postId={currentPost.postID} />
     </div>
   );
 }

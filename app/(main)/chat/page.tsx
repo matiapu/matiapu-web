@@ -170,7 +170,20 @@ export default function ChatPage() {
       const formattedRooms = await Promise.all(
         dbRooms.map(async (room) => {
           const partnerUid = room.user_ids.find((id: string) => id !== currentUser.uid);
-          const partnerProfile = await getUserProfile(partnerUid);
+          let partnerProfile: any = null;
+          if (partnerUid === "system") {
+            partnerProfile = {
+              displayName: "システム通知",
+              nickname: "システム",
+              profileImage: "/logo.png"
+            };
+          } else {
+            try {
+              partnerProfile = await getUserProfile(partnerUid);
+            } catch (err) {
+              console.error(`Error fetching user profile for ${partnerUid}:`, err);
+            }
+          }
           
           let lastMsgText = "メッセージはありません";
           if (room.last_message_text && room.last_message_iv) {
@@ -655,68 +668,75 @@ export default function ChatPage() {
           </div>
 
           {/* メッセージ入力・フォーム部分 */}
-          <div className={styles.inputAreaContainer}>
-            <form className={styles.inputBar} onSubmit={handleSend}>
-              <button 
-                type="button" 
-                className={styles.iconBtn} 
-                title="画像送信"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <FontAwesomeIcon icon={faImage} />
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: "none" }}
-                accept="image/*"
-                onChange={handleImageUpload}
-              />
-              
-              <input
-                type="text"
-                placeholder="メッセージを入力..."
-                className={styles.messageInput}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
-              
-              <div style={{ position: "relative" }} ref={emojiPickerRef}>
+          {activeRoom.partnerUid === "system" ? (
+            <div className={styles.systemChatNotice}>
+              <FontAwesomeIcon icon={faLock} style={{ marginRight: '8px', color: '#64748b' }} />
+              システム専用チャットのため、メッセージの送信はできません。
+            </div>
+          ) : (
+            <div className={styles.inputAreaContainer}>
+              <form className={styles.inputBar} onSubmit={handleSend}>
                 <button 
                   type="button" 
                   className={styles.iconBtn} 
-                  title="絵文字"
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  title="画像送信"
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <FontAwesomeIcon icon={faSmile} />
+                  <FontAwesomeIcon icon={faImage} />
                 </button>
-                {showEmojiPicker && (
-                  <div className={styles.emojiPickerPopup}>
-                    <div className={styles.emojiPickerGrid}>
-                      {EMOJIS.map((emoji, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          className={styles.emojiItem}
-                          onClick={() => handleSendEmoji(emoji)}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  style={{ display: "none" }}
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+                
+                <input
+                  type="text"
+                  placeholder="メッセージを入力..."
+                  className={styles.messageInput}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+                
+                <div style={{ position: "relative" }} ref={emojiPickerRef}>
+                  <button 
+                    type="button" 
+                    className={styles.iconBtn} 
+                    title="絵文字"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  >
+                    <FontAwesomeIcon icon={faSmile} />
+                  </button>
+                  {showEmojiPicker && (
+                    <div className={styles.emojiPickerPopup}>
+                      <div className={styles.emojiPickerGrid}>
+                        {EMOJIS.map((emoji, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            className={styles.emojiItem}
+                            onClick={() => handleSendEmoji(emoji)}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+                <button type="submit" className={styles.sendBtn} title="送信" disabled={isSending}>
+                  <FontAwesomeIcon icon={faPaperPlane} size="sm" />
+                </button>
+              </form>
+              <div className={styles.encryptionNotice}>
+                <FontAwesomeIcon icon={faLock} className={styles.encryptionIcon} />
+                <span>エンドツーエンド暗号化で保護されています</span>
               </div>
-              <button type="submit" className={styles.sendBtn} title="送信" disabled={isSending}>
-                <FontAwesomeIcon icon={faPaperPlane} size="sm" />
-              </button>
-            </form>
-            <div className={styles.encryptionNotice}>
-              <FontAwesomeIcon icon={faLock} className={styles.encryptionIcon} />
-              <span>エンドツーエンド暗号化で保護されています</span>
             </div>
-          </div>
+          )}
 
           {/* フッターリンク部分 */}
           <footer className={styles.chatFooter}>

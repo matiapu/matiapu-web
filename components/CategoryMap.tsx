@@ -31,6 +31,7 @@ interface LocationItem {
   intensity?: string;
   scale?: string;
   isTsunami?: boolean;
+  authorUserType?: string;
 }
 
 interface IntensityColor {
@@ -384,6 +385,22 @@ function CategoryMap() {
           console.error('Firestoreから投稿情報の取得に失敗しました。', dbErr);
         }
 
+        // 各投稿の作成者のユーザープロフィールを取得
+        const uids = Array.from(new Set(dbPosts.map(p => p.author_uid).filter(Boolean))) as string[];
+        const userProfiles: Record<string, any> = {};
+        await Promise.all(
+          uids.map(async (uid) => {
+            try {
+              const profile = await getUserProfile(uid);
+              if (profile) {
+                userProfiles[uid] = profile;
+              }
+            } catch (err) {
+              console.error(`Error fetching user profile for ${uid}:`, err);
+            }
+          })
+        );
+
         // 2. 位置情報がある投稿をマッピング
         const nonDisasterLocations = dbPosts
           .map(p => {
@@ -409,12 +426,15 @@ function CategoryMap() {
               category = p.category;
             }
 
+            const authorProfile = userProfiles[p.author_uid] || {};
+
             return {
               id: p.id,
               name: name,
               lat: lat,
               lng: lng,
-              category: category
+              category: category,
+              authorUserType: authorProfile.userType
             } as LocationItem;
           })
           .filter((loc): loc is LocationItem => loc !== null);
@@ -630,12 +650,10 @@ function CategoryMap() {
               defaultZoom={14}
               mapId="DEMO_MAP_ID"
               onClick={() => setSelectedLocation(null)}
-              options={{
-                mapTypeControl: false,
-                fullscreenControl: false,
-                streetViewControl: false,
-                zoomControl: true
-              }}
+              mapTypeControl={false}
+              fullscreenControl={false}
+              streetViewControl={false}
+              zoomControl={true}
             >
               <MapController center={mapCenter} zoom={mapZoom} />
               <PrefectureLayers locations={locations} selectedCategory={selectedCategory} />
@@ -696,7 +714,10 @@ function CategoryMap() {
                   >
                     {(categoryStyles[selectedLocation.category] || categoryStyles.default).label}
                   </span>
-                  <Link href={`/posts/${selectedLocation.id}`} className={styles.cardLink}>
+                  <Link 
+                    href={selectedLocation.authorUserType === 'politician' ? `/politicians/posts/${selectedLocation.id}` : `/posts/${selectedLocation.id}`} 
+                    className={styles.cardLink}
+                  >
                     詳細ページを見る
                   </Link>
                 </div>

@@ -14,6 +14,8 @@ export interface Post {
   userID: string;
   questionText: string;
   answerText: string | null;
+  authorUserType?: string;
+  likedMe?: boolean;
 }
 
 export const POSTS: Post[] = [
