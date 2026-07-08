@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import styles from "./Chat.module.css";
+import backgroundUrls from "@/src/firebase/backgroundUrls.json";
 import Image from "next/image";
 import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
@@ -14,6 +15,9 @@ import {
   decryptContent
 } from "@/src/firebase/chatDb";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { config } from "@fortawesome/fontawesome-svg-core";
+import "@fortawesome/fontawesome-svg-core/styles.css";
+config.autoAddCss = false; // Next.js + Webpackでのハイドレーションミスマッチ・DOM操作エラーの根本防止
 import {
   faPaperPlane,
   faImage,
@@ -60,6 +64,28 @@ export default function ChatPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
+  // 葉っぱの枯れ具合更新のための現在時刻ステート (10秒ごとに更新)
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 経過時間に応じた枯れ具合ステージを取得
+  const getLeafStage = (createdAt: Date) => {
+    const diffMs = now - createdAt.getTime();
+    const diffMins = diffMs / 1000 / 60;
+    if (diffMins < 1) {
+      return "fresh";
+    } else if (diffMins < 3) {
+      return "yellowing";
+    } else {
+      return "withered";
+    }
+  };
+
   // チャットスレッド一覧とメッセージ履歴
   const [rooms, setRooms] = useState<any[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -481,7 +507,12 @@ export default function ChatPage() {
 
       {/* 2. 右側チャットメインエリア */}
       {activeRoom ? (
-        <main className={styles.chatArea}>
+        <main
+          className={styles.chatArea}
+          style={{
+            "--chat-bg-url": `url(${backgroundUrls.chat_backimage || "/back_image/chat_backimage.avif"})`
+          } as React.CSSProperties}
+        >
           {/* ヘッダー部分 */}
           <header className={styles.chatHeader}>
             <div className={styles.chatPartnerInfo}>
@@ -549,18 +580,22 @@ export default function ChatPage() {
                         />
                       )}
                       <div className={styles.bubbleContainer}>
-                        <div
-                          className={`${styles.bubble} ${
+                        {(() => {
+                          const leafStage = getLeafStage(msg.created_at);
+                          const leafBubbleClass = `${styles.bubble} ${
                             isMe ? styles.outgoingBubble : styles.incomingBubble
-                          }`}
-                        >
-                          {(msg.image_url || msg.image_deleted) && (
+                          } ${styles[`leaf-${leafStage}`]} ${
+                            isMe ? styles[`leaf-outgoing-${leafStage}`] : styles[`leaf-incoming-${leafStage}`]
+                          }`;
+                          return (
+                            <div className={leafBubbleClass}>
+                              {(msg.image_url || msg.image_deleted) && (
                             isImageExpired(msg) || msg.image_deleted ? (
                               <div 
                                 className={styles.expiredImagePlaceholder}
                                 style={{ marginBottom: msg.content_text ? "8px" : "0" }}
                               >
-                                <span>⚠️ 送信から1週間経過したため画像は非表示になりました</span>
+                                <span>🐛 画像は虫に食べられちゃった！（送信から1週間経過）</span>
                               </div>
                             ) : (
                               msg.image_url && msg.image_url.includes("shared_emojis") ? (
@@ -602,6 +637,8 @@ export default function ChatPage() {
                           )}
                           {msg.content_text && <p style={{ margin: 0 }}>{msg.content_text}</p>}
                         </div>
+                      );
+                    })()}
                       </div>
                       <div
                         className={`${styles.metaContainer} ${
