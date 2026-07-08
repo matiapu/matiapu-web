@@ -136,7 +136,7 @@ export default function StoreSignupPage() {
       setStep("verify");
       setInfoMessage("確認メールを送信しました。メールボックスを確認してください。");
     } catch (err) {
-      console.error("Signup error:", err);
+      console.warn("Signup error:", err);
       const firebaseError = err as { code?: string };
       if (firebaseError.code === "auth/email-already-in-use") {
         setError("このメールアドレスはすでに登録されています。");
@@ -292,7 +292,11 @@ export default function StoreSignupPage() {
                       className={styles.eyeButton}
                       aria-label={showPassword ? "パスワードを非表示にする" : "パスワードを表示する"}
                     >
-                      <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                      {showPassword ? (
+                        <FontAwesomeIcon key="eye-slash" icon={faEyeSlash} />
+                      ) : (
+                        <FontAwesomeIcon key="eye" icon={faEye} />
+                      )}
                     </button>
                   </div>
                 </div>

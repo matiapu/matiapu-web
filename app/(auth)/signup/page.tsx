@@ -177,7 +177,7 @@ export default function SignupPage() {
       setStep("verify");
       setInfoMessage("確認メールを送信しました。メールボックスを確認してください。");
     } catch (err) {
-      console.error("Signup error:", err);
+      console.warn("Signup error:", err);
       const firebaseError = err as { code?: string };
       if (firebaseError.code === "auth/email-already-in-use") {
         setError("このメールアドレスはすでに登録されています。");
@@ -296,7 +296,7 @@ export default function SignupPage() {
       router.push("/signup/details");
       router.refresh();
     } catch (err) {
-      console.error("Social signup error:", err);
+      console.warn("Social signup error:", err);
       const firebaseError = err as { code?: string };
       if (firebaseError.code !== "auth/popup-closed-by-user") {
         setError(`${providerName === "google" ? "Google" : "Apple"}での登録に失敗しました。`);
@@ -449,7 +449,11 @@ export default function SignupPage() {
                       className={styles.eyeButton}
                       aria-label={showPassword ? "パスワードを非表示にする" : "パスワードを表示する"}
                     >
-                      <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                      {showPassword ? (
+                        <FontAwesomeIcon key="eye-slash" icon={faEyeSlash} />
+                      ) : (
+                        <FontAwesomeIcon key="eye" icon={faEye} />
+                      )}
                     </button>
                   </div>
                 </div>
