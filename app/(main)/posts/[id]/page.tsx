@@ -13,7 +13,8 @@ import { getPosts } from '@/src/firebase/postDb';
 import { getUserProfile } from '@/src/firebase/userDb';
 import { hasLikedPost, likePost, unlikePost } from '@/src/firebase/likeDb';
 import { recordViewHistory } from '@/src/firebase/historyDb';
-import { auth } from '@/src/firebase/firebase';
+import { auth, db } from '@/src/firebase/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { POSTS, Post as UIPost } from '@/data/posts';
 
 interface PageProps {
@@ -102,8 +103,40 @@ function Page({ params }: PageProps) {
           })
         );
 
-        // 店舗・一般ユーザーの投稿のみ表示 (議員の投稿を除外)
-        const filteredPosts = mappedPosts.filter(p => p.authorUserType !== 'politician');
+        // ログインユーザーのプロファイルを事前に取得
+        const currentUserProfile = await getUserProfile(uid);
+        const currentUserType = currentUserProfile?.userType || 'general';
+
+        // 投稿一覧のフィルタリング (非表示制御と議員向け公開範囲制限)
+        const filteredPosts: LocalUIPost[] = [];
+        for (const p of mappedPosts) {
+          // 議員の投稿は除外
+          if (p.authorUserType === 'politician') continue;
+
+          // プロフィール投稿の処理
+          if (p.tags === 'プロフィール') {
+            // 一般ユーザーや店舗ユーザーにはプロフィール投稿を表示しない
+            if (currentUserType !== 'politician') continue;
+
+            // 議員ユーザーの場合は、この一般ユーザーが自分（議員）に「いいね」しているかチェック
+            try {
+              const matchId = `${p.userID}_${uid}`;
+              const matchDoc = await getDoc(doc(db, "matches", matchId));
+              if (matchDoc.exists()) {
+                const matchData = matchDoc.data();
+                // 一般ユーザーのアクションが 'like' の場合のみ閲覧を許可
+                if (matchData && matchData.user_action === 'like') {
+                  filteredPosts.push(p);
+                }
+              }
+            } catch (err) {
+              console.error("Error checking match status for profile post:", err);
+            }
+          } else {
+            // 通常の投稿は表示
+            filteredPosts.push(p);
+          }
+        }
 
         setPosts(filteredPosts);
       } catch (err) {

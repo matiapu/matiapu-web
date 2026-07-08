@@ -696,7 +696,7 @@ export default function SettingsPage() {
               <div className={styles.inputWrapper}>
                 <input
                   type="text"
-                  value={accountType === "politician" ? "議員" : accountType === "shop" ? "加盟店" : "一般市民"}
+                  value={accountType === "politician" ? "議員" : accountType === "shop" ? "加盟店" : "一般"}
                   readOnly
                   disabled
                   className={`${styles.input} ${styles.lockedInput}`}
@@ -705,7 +705,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* 一般市民の場合のみニックネーム */}
+            {/* 一般の場合のみニックネーム */}
             {accountType === "general" && (
               <div className={styles.inputGroup}>
                 <div className={styles.labelArea}>

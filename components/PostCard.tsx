@@ -42,6 +42,7 @@ function PostCard({ post }: PostCardProps) {
                     sizes="100vw"
                     className={styles.post_image}
                     unoptimized
+                    priority
                 />
 
                 {/* ユーザー情報 */}

@@ -8,7 +8,7 @@ import styles from '@/app/(main)/posts/[id]/page.module.css';
 import NiceButton from '@/components/NiceButton';
 import BadButton from '@/components/BadButton';
 import SkipButton from '@/components/SkipButton';
-import { getPosts } from '@/src/firebase/postDb';
+import { getPosts, createPost } from '@/src/firebase/postDb';
 import { getUserProfile } from '@/src/firebase/userDb';
 import { hasLikedPost, likePost, unlikePost } from '@/src/firebase/likeDb';
 import { handleUserLike, handleUserBad } from '@/src/firebase/matchDb';
@@ -244,6 +244,24 @@ function Page({ params }: PageProps) {
       await handleUserLike(uid, currentPost.userID);
       // 投稿そのもののいいね登録
       await likePost(currentPost.postID, uid);
+
+      // いいねした一般ユーザーがこれまで投稿したことがないかチェック
+      const userPosts = await getPosts({ author_uid: uid });
+      if (userPosts.length === 0) {
+        const profile = await getUserProfile(uid);
+        if (profile) {
+          const nickname = profile.nickname || profile.displayName || "匿名ユーザー";
+          await createPost({
+            author_uid: uid,
+            user_badge: "一般",
+            title: `${nickname}さんのプロフィール`,
+            content_text: `${nickname}さんのプロフィールカードです。現在投稿はありません。`,
+            image_url: profile.profileImage || null,
+            status: "Public",
+            tags: "プロフィール"
+          });
+        }
+      }
     } catch (err) {
       console.error("Failed to process like matching in Firestore:", err);
     }
@@ -324,20 +342,7 @@ function Page({ params }: PageProps) {
       </div>
 
       {/* アクションエリア (コメント禁止対応 + スキップボタン追加) */}
-      <div className={styles.Comment_NiceBadButton}>
-        <div style={{
-          flex: 1,
-          padding: '12px 16px',
-          color: '#64748b',
-          fontSize: '0.95rem',
-          textAlign: 'center',
-          backgroundColor: '#f1f5f9',
-          borderRadius: '8px',
-          border: '1px solid #e2e8f0',
-          fontWeight: '500'
-        }}>
-          議員の投稿へのコメントは禁止されています
-        </div>
+      <div className={styles.Politician_NiceBadButton}>
         <BadButton onClick={handleDislike} isDisliked={currentPost.isDisliked} />
         <SkipButton onClick={handleSkip} />
         <NiceButton onClick={handleLike} isLiked={currentPost.isLiked} />
