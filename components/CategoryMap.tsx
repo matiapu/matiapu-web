@@ -303,7 +303,6 @@ function CategoryMap() {
   // マップの外側がクリックされたら非アクティブにする
   useEffect(() => {
     if (!isMapActive) return;
-
     const handleOutsideClick = (event: MouseEvent) => {
       if (
         mapContainerRef.current &&
@@ -312,10 +311,11 @@ function CategoryMap() {
         setIsMapActive(false);
       }
     };
-
     document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('pointerdown', handleOutsideClick);
     return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
+    document.removeEventListener('mousedown', handleOutsideClick);
+    document.removeEventListener('pointerdown', handleOutsideClick);
     };
   }, [isMapActive]);
 
