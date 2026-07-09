@@ -18,6 +18,7 @@
 8. [暗号化チャットモジュール (chatDb.ts)](#8-暗号化チャットモジュール-chatdbts)
 9. [Q&Aモジュール (qaDb.ts)](#9-qaモジュール-qadbts)
 10. [マッチングモジュール (matchDb.ts)](#10-マッチングモジュール-matchdbts)
+11. [閲覧履歴モジュール (historyDb.ts)](#11-閲覧履歴モジュール-historydbts)
 
 ---
 
@@ -437,6 +438,30 @@ Firestore コレクション名: `matches` (ドキュメントID = `${user_uid}_
 
 ---
 
+## 11. 閲覧履歴モジュール (`historyDb.ts`)
+投稿を詳細表示した際のユーザーの閲覧履歴（履歴データ）を管理します。
+Firestore コレクション名: `view_histories`
+
+### 重複防止およびインデックス不要設計
+- ドキュメントIDを `${postId}_${userId}` の規則で作成して `setDoc` を実行します。これにより、同じユーザーが同じ投稿を複数回閲覧した場合も、`viewed_at` が最新のタイムスタンプに更新され、履歴が重複しません。
+- データの取得時は Firestore 側で `user_id` でのみ絞り込み、取得後にクライアント側で降順ソートします。これにより複合インデックスが不要になり、Firestore上での追加設定なしで安定して動作します。
+
+### データ構造 (`ViewHistory` インターフェース)
+| プロパティ | 型 | 必須/任意 | 説明 |
+| :--- | :--- | :--- | :--- |
+| `id` | `string` | 任意 | ドキュメントID (形式: `${postId}_${userId}`) |
+| `post_id` | `string` | 必須 | 閲覧対象の投稿ID |
+| `user_id` | `string` | 必須 | 閲覧したユーザーのUID |
+| `viewed_at` | `Timestamp` | 必須 | 閲覧した日時（タイムスタンプ） |
+
+### 提供される関数
+- **`recordViewHistory(postId: string, userId: string): Promise<void>`**
+  - 投稿の閲覧履歴を書き込み、または更新します。
+- **`getViewHistoryForUser(userId: string): Promise<ViewHistory[]>`**
+  - 特定のユーザーの閲覧履歴一覧を取得します。
+
+---
+
 ## Firestore セキュリティルール設計の推奨事項
 これらのモジュールがクライアント側から直接呼び出される場合、以下のFirestoreルールが想定されています。
 
@@ -540,6 +565,14 @@ service cloud.firestore {
         request.auth.uid == resource.data.politician_uid ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
       );
+    }
+    
+    // 10. view_histories
+    match /view_histories/{historyId} {
+      allow read: if request.auth != null && resource.data.user_id == request.auth.uid;
+      // historyId = postId_userId の形式のため、自分自身のuserIdでのみ作成・更新・削除を許可
+      allow create, update: if request.auth != null && request.resource.data.user_id == request.auth.uid && historyId == request.resource.data.post_id + '_' + request.auth.uid;
+      allow delete: if request.auth != null && resource.data.user_id == request.auth.uid;
     }
   }
 }

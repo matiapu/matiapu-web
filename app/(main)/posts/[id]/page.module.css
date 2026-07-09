@@ -1,3 +1,76 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.scrollContainer {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  width: 100%;
+  position: relative;
+  scroll-behavior: smooth;
+  /* Hide scrollbar across major browsers */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.scrollContainer::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+.cardWrapper {
+  flex: 0 0 100%;
+  width: 100%;
+  scroll-snap-align: start;
+  position: relative;
+  box-sizing: border-box;
+  padding: 0 10px; /* spacing between cards */
+}
+
+/* Semi-transparent overlay navigation arrows */
+.navButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.45);
+  color: white;
+  border: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  font-size: 26px;
+  font-weight: 300;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s, transform 0.2s;
+  backdrop-filter: blur(4px);
+  user-select: none;
+}
+
+.navButton:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.prevButton {
+  left: 25px;
+}
+
+.nextButton {
+  right: 25px;
+}
+
 .Comment_NiceBadButton {
   display: flex;
   align-items: center;
@@ -7,3 +80,23 @@
   max-width: 1000px;
   margin: 20px auto;
 }
+
+.Politician_NiceBadButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 20px auto;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #666;
+}

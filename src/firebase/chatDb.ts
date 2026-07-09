@@ -179,12 +179,20 @@ export async function decryptContent(
   ivBase64: string,
   roomId: string
 ): Promise<string> {
+  if (!encryptedBase64 || !ivBase64) {
+    throw new Error("Missing encrypted content or initialization vector");
+  }
+
   const cryptoObj = getCrypto();
   const decoder = new TextDecoder();
   const key = await deriveRoomKey(roomId);
   
   const encrypted = base64ToArrayBuffer(encryptedBase64);
   const iv = base64ToArrayBuffer(ivBase64);
+  
+  if (iv.byteLength === 0) {
+    throw new Error("Invalid initialization vector length");
+  }
   
   const decrypted = await cryptoObj.subtle.decrypt(
     { name: "AES-GCM", iv: new Uint8Array(iv) },
@@ -351,7 +359,7 @@ export async function getDecryptedMessages(roomId: string): Promise<DecryptedCha
         });
       } catch (decErr) {
         // キー不一致などで復号化に失敗した場合は伏字で表示
-        console.error(`Failed to decrypt message ${docSnap.id}:`, decErr);
+        console.warn(`Failed to decrypt message ${docSnap.id}:`, decErr instanceof Error ? decErr.message : String(decErr));
         decryptedMessages.push({
           id: docSnap.id,
           sender_id: data.sender_id,

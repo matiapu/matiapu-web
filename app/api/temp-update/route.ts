@@ -20,11 +20,12 @@ export async function GET() {
       message: "Successfully updated user JgXQBJrpxbRhVQLlDwpyISPJuA62 to a sample politician account.",
       updatedFields: updates
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error updating user:", error);
+    const errMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json({
       success: false,
-      error: error.message || String(error)
+      error: errMessage
     }, { status: 500 });
   }
 }

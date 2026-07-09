@@ -1,0 +1,71 @@
+export interface Post {
+  id: number | string;
+  name: string;
+  address?: string;
+  userIcon: string;
+  title: string;
+  tags: string;
+  image: string;
+  createAt: string;
+  content: string;
+  likes: string;
+  commentID: string;
+  postID: string;
+  userID: string;
+  questionText: string;
+  answerText: string | null;
+  authorUserType?: string;
+  likedMe?: boolean;
+}
+
+export const POSTS: Post[] = [
+  {
+    id:1,
+    name:"佐々木 太郎",
+    address:"東京都新宿区",
+    userIcon:"/user_icon/user_icon1.jpg",
+    title:"test",
+    tags:"災害",
+    image:"/post_image/post_image1.jpg",
+    createAt:"2026-06-10",
+    content:"本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文本文... (省略)",
+    likes:"1",
+    commentID:"comment1",
+    postID: "post1",               
+    userID: "user1",       
+    questionText: "質問です",     
+    answerText: null,  
+  },
+  {
+    id:2,
+    name:"佐々木 太郎",
+    userIcon:"/user_icon/user_icon2.jpg",
+    title:"わああああ",
+    tags:"災害",
+    image:"/post_image/post_image2.jpg",
+    createAt:"2026-06-10",
+    content:"本文",
+    likes:"10",
+    commentID:"comment1",
+    postID: "post2",               
+    userID: "user2",       
+    questionText: "今日は暑いです。",     
+    answerText: null,  
+  },
+  {
+    id:3,
+    name:"佐々木 太郎",
+    userIcon:"/user_icon/user_icon3.jpg",
+    title:"test",
+    tags:"災害",
+    image:"/post_image/post_image3.jpg",
+    createAt:"2026-06-10",
+    content:"本文",
+    likes:"50",
+    commentID:"comment1",
+    postID: "post3",               
+    userID: "user3",       
+    questionText: "今日も元気",     
+    answerText: null,  
+  }
+];
