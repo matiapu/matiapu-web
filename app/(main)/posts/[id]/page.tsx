@@ -359,7 +359,7 @@ function Page({ params }: PageProps) {
               </button>
             )}
             
-            <PostCard post={post} />
+            <PostCard post={post} isActive={idx === activeIndex} />
             
             {/* 右矢印ボタン (最後の投稿以外に表示) */}
             {idx < posts.length - 1 && (
