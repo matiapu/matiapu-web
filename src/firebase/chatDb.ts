@@ -10,7 +10,9 @@ import {
   where,
   Timestamp,
   DocumentData,
-  updateDoc
+  updateDoc,
+  deleteDoc,
+  limit
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -61,6 +63,8 @@ export interface ChatMessage {
   read?: boolean;
   /** 画像が消去されたかどうかのフラグ */
   image_deleted?: boolean;
+  /** 送信取り消しフラグ */
+  canceled?: boolean;
 }
 
 // 復号化された平文メッセージのインターフェース
@@ -77,6 +81,8 @@ export interface DecryptedChatMessage {
   read?: boolean;
   /** 画像が消去されたかどうかのフラグ */
   image_deleted?: boolean;
+  /** 送信取り消しフラグ */
+  canceled?: boolean;
 }
 
 // --- Base64 / ArrayBuffer 変換ヘルパー (ブラウザ・Node.js両対応) ---
@@ -355,7 +361,8 @@ export async function getDecryptedMessages(roomId: string): Promise<DecryptedCha
           read: data.read || false,
           image_deleted: data.image_deleted || false,
           created_at: data.created_at,
-          is_system: data.is_system || false
+          is_system: data.is_system || false,
+          canceled: data.canceled || false
         });
       } catch (decErr) {
         // キー不一致などで復号化に失敗した場合は伏字で表示
@@ -369,7 +376,8 @@ export async function getDecryptedMessages(roomId: string): Promise<DecryptedCha
           read: data.read || false,
           image_deleted: data.image_deleted || false,
           created_at: data.created_at,
-          is_system: data.is_system || false
+          is_system: data.is_system || false,
+          canceled: data.canceled || false
         });
       }
     }
@@ -377,6 +385,76 @@ export async function getDecryptedMessages(roomId: string): Promise<DecryptedCha
     return decryptedMessages;
   } catch (err) {
     console.error("Error getting or decrypting chat messages:", err);
+    throw err;
+  }
+}
+
+/**
+ * チャットメッセージの送信を取り消します。
+ * 未読状態であればドキュメントを完全に削除し、
+ * 既読状態であれば "送信が取り消されました" というテキストを暗号化して更新し、canceledフラグをtrueにします。
+ * 送信取り消し後に親のチャットルームの最終メッセージ情報（last_message）も自動更新します。
+ * 
+ * @param roomId チャットルームID
+ * @param messageId 取り消すメッセージのドキュメントID
+ */
+export async function cancelChatMessage(
+  roomId: string,
+  messageId: string
+): Promise<void> {
+  try {
+    const messageRef = doc(db, "chat_rooms", roomId, "messages", messageId);
+    const msgSnap = await getDoc(messageRef);
+    if (!msgSnap.exists()) {
+      throw new Error("Message does not exist");
+    }
+
+    const msgData = msgSnap.data() as ChatMessage;
+    const isRead = msgData.read === true;
+
+    if (!isRead) {
+      // 未読状態：形跡なしで完全に削除
+      await deleteDoc(messageRef);
+    } else {
+      // 既読状態：テキストを更新して canceled フラグを true に
+      const cancelText = "送信が取り消されました";
+      const { encrypted_content, iv } = await encryptContent(cancelText, roomId);
+      await updateDoc(messageRef, {
+        encrypted_content,
+        iv,
+        canceled: true,
+        image_url: null,
+        image_deleted: true
+      });
+    }
+
+    // 親チャットルームの最終メッセージ情報を更新
+    const roomRef = doc(db, "chat_rooms", roomId);
+    
+    // 最新のメッセージを1件取得
+    const messagesCollectionRef = collection(db, "chat_rooms", roomId, "messages");
+    const q = query(messagesCollectionRef, orderBy("created_at", "desc"), limit(1));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      const latestMsgDoc = querySnapshot.docs[0];
+      const latestMsgData = latestMsgDoc.data() as ChatMessage;
+      
+      await updateDoc(roomRef, {
+        last_message_at: latestMsgData.created_at || Timestamp.now(),
+        last_message_text: latestMsgData.encrypted_content,
+        last_message_iv: latestMsgData.iv
+      });
+    } else {
+      // メッセージが残っていない場合
+      await updateDoc(roomRef, {
+        last_message_at: Timestamp.now(),
+        last_message_text: "",
+        last_message_iv: ""
+      });
+    }
+  } catch (err) {
+    console.error("Error canceling chat message:", err);
     throw err;
   }
 }
