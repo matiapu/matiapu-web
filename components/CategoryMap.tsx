@@ -130,30 +130,33 @@ function PrefectureLayers({ locations, selectedCategory }: PrefectureLayersProps
   return null;
 }
 
-interface KanagawaDistrictLayersProps {
+interface DistrictLayersProps {
   userAddress: string;
 }
 
-// 神奈川県の市区町村（区）の境界をロードし、ユーザーの所属区以外をグレーアウトするコンポーネント
-function KanagawaDistrictLayers({ userAddress }: KanagawaDistrictLayersProps) {
+// 東京都および神奈川県の市区町村（区）の境界をロードし、ユーザーの所属区以外をグレーアウトするコンポーネント
+function DistrictLayers({ userAddress }: DistrictLayersProps) {
   const map = useMap();
 
   useEffect(() => {
     if (!map || !window.google || !window.google.maps) return;
 
-    // 神奈川県のユーザーかどうかを判定
-    const isKanagawaUser = userAddress.trim().startsWith("神奈川県") || userAddress.trim().includes("神奈川");
-    if (!isKanagawaUser) return;
+    // 対象の都道府県（神奈川県または東京都）のユーザーかどうかを判定
+    const isTargetUser = 
+      userAddress.trim().startsWith("神奈川県") || userAddress.trim().includes("神奈川") ||
+      userAddress.trim().startsWith("東京都") || userAddress.trim().includes("東京");
+      
+    if (!isTargetUser) return;
 
     const dataLayer = new window.google.maps.Data();
     dataLayer.setMap(map);
 
     let isMounted = true;
-    const geoJsonUrl = "/data/kanagawa-boundaries.json";
+    const geoJsonUrl = "/data/districts-boundaries.json";
 
     fetch(geoJsonUrl)
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch Kanagawa boundaries");
+        if (!res.ok) throw new Error("Failed to fetch district boundaries");
         return res.json();
       })
       .then((geoJson) => {
@@ -162,26 +165,32 @@ function KanagawaDistrictLayers({ userAddress }: KanagawaDistrictLayersProps) {
         dataLayer.addGeoJson(geoJson);
 
         dataLayer.setStyle((feature) => {
+          const n03_001 = feature.getProperty("N03_001") as string | null | undefined;
           const n03_003 = feature.getProperty("N03_003") as string | null | undefined;
           const n03_004 = feature.getProperty("N03_004") as string | null | undefined;
           const cleanAddr = userAddress.replace(/\s+/g, '');
           let isMatch = false;
 
-          if (n03_003) {
-            // 政令指定都市（横浜市、川崎市、相模原市）
-            const fullName = n03_003 + (n03_004 || "");
-            if (cleanAddr.includes(fullName)) {
-              isMatch = true;
-            } else if (n03_004 && cleanAddr.includes(n03_004)) {
-              const hasOtherCity = (n03_003 === "横浜市" && cleanAddr.includes("相模原")) ||
-                                   (n03_003 === "相模原市" && cleanAddr.includes("横浜"));
-              if (!hasOtherCity) {
+          // ユーザー住所がその都道府県の市区町村・区にマッチするか判定
+          const isPrefectureMatch = n03_001 && cleanAddr.includes(n03_001);
+
+          if (isPrefectureMatch) {
+            if (n03_003) {
+              // 政令指定都市（横浜市、川崎市、相模原市）
+              const fullName = n03_003 + (n03_004 || "");
+              if (cleanAddr.includes(fullName)) {
                 isMatch = true;
+              } else if (n03_004 && cleanAddr.includes(n03_004)) {
+                const hasOtherCity = (n03_003 === "横浜市" && cleanAddr.includes("相模原")) ||
+                                     (n03_003 === "相模原市" && cleanAddr.includes("横浜"));
+                if (!hasOtherCity) {
+                  isMatch = true;
+                }
               }
+            } else if (n03_004) {
+              // 東京23区、およびその他の市町村
+              isMatch = cleanAddr.includes(n03_004);
             }
-          } else if (n03_004) {
-            // その他の市町村
-            isMatch = cleanAddr.includes(n03_004);
           }
 
           if (isMatch) {
@@ -194,19 +203,27 @@ function KanagawaDistrictLayers({ userAddress }: KanagawaDistrictLayersProps) {
               zIndex: 2
             };
           } else {
-            return {
-              fillColor: "#1e293b",
-              fillOpacity: 0.45,
-              strokeColor: "#475569",
-              strokeWeight: 1.0,
-              visible: true,
-              zIndex: 1
-            };
+            // 所属する都道府県と同じ都道府県の別エリアはグレーアウト、他県はスッキリさせるため非表示
+            const isSamePref = n03_001 && cleanAddr.includes(n03_001);
+            if (isSamePref) {
+              return {
+                fillColor: "#1e293b",
+                fillOpacity: 0.45,
+                strokeColor: "#475569",
+                strokeWeight: 1.0,
+                visible: true,
+                zIndex: 1
+              };
+            } else {
+              return {
+                visible: false
+              };
+            }
           }
         });
       })
       .catch((err) => {
-        console.error("Error loading Kanagawa district layers:", err);
+        console.error("Error loading district layers:", err);
       });
 
     return () => {
@@ -745,7 +762,7 @@ function CategoryMap() {
             >
               <MapController center={mapCenter} zoom={mapZoom} />
               <PrefectureLayers locations={locations} selectedCategory={selectedCategory} />
-              <KanagawaDistrictLayers userAddress={userAddress} />
+              <DistrictLayers userAddress={userAddress} />
               <AddressGeocoder address={userAddress} onGeocode={handleGeocode} skip={hasEarthquake} />
               {/* フィルタリングされた配列をループしてピンを配置 */}
               {filteredLocations.map((data, index) => {
