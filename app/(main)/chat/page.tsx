@@ -64,7 +64,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   
   // 葉っぱの枯れ具合更新のための現在時刻ステート (10秒ごとに更新)
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => {
       setNow(Date.now());
