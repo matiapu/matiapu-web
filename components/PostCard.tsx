@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import UserIcon from './UserIcon'
 import styles from './PostCard.module.css'
 import Image from 'next/image'
@@ -13,13 +13,15 @@ interface PostCardProps {
 function PostCard({ post, isActive }: PostCardProps) {
     // 投稿が開いているかどうかを管理するステート（初期値は false = 閉じている
     const [isOpen, setIsOpen] = useState(false)
+    const [prevActive, setPrevActive] = useState(isActive)
 
     // アクティブ状態でなくなった場合、自動的にカードを閉じる
-    useEffect(() => {
-        if (!isActive) {
+    if (isActive !== prevActive) {
+        setPrevActive(isActive)
+        if (isActive === false) {
             setIsOpen(false)
         }
-    }, [isActive])
+    }
 
     const MAX_LENGTH = 100
 
