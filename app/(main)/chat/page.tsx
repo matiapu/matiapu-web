@@ -12,7 +12,8 @@ import { onSnapshot, collection, query, orderBy, where, doc, updateDoc, getDocs 
 import { getUserProfile } from "@/src/firebase/userDb";
 import {
   sendChatMessage,
-  decryptContent
+  decryptContent,
+  cancelChatMessage
 } from "@/src/firebase/chatDb";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -21,7 +22,8 @@ import {
   faSmile,
   faInfoCircle,
   faLock,
-  faSpinner
+  faSpinner,
+  faUndo
 } from "@fortawesome/free-solid-svg-icons";
 
 const EMOJIS = [
@@ -101,6 +103,13 @@ export default function ChatPage() {
   // 画像拡大表示用のURLステート
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
 
+  // 右クリック送信取り消しメニュー状態
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    messageId: string;
+  } | null>(null);
+
   // スクロール用Ref
   const messageLogRef = useRef<HTMLDivElement>(null);
 
@@ -114,6 +123,15 @@ export default function ChatPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // コンテキストメニューを閉じる
+  useEffect(() => {
+    const handleCloseMenu = () => setContextMenu(null);
+    window.addEventListener("click", handleCloseMenu);
+    return () => {
+      window.removeEventListener("click", handleCloseMenu);
     };
   }, []);
 
@@ -310,7 +328,8 @@ export default function ChatPage() {
             image_url: data.image_url || null,
             image_deleted: data.image_deleted || false,
             created_at: data.created_at ? data.created_at.toDate() : new Date(),
-            isRead: data.read || false
+            isRead: data.read || false,
+            canceled: data.canceled || false
           };
         } catch (err) {
           console.warn("Failed to decrypt message:", err instanceof Error ? err.message : String(err));
@@ -322,7 +341,8 @@ export default function ChatPage() {
             image_url: data.image_url || null,
             image_deleted: data.image_deleted || false,
             created_at: data.created_at ? data.created_at.toDate() : new Date(),
-            isRead: data.read || false
+            isRead: data.read || false,
+            canceled: data.canceled || false
           };
         }
       });
@@ -434,6 +454,16 @@ export default function ChatPage() {
       );
     } catch (err) {
       console.error("Failed to upload image:", err);
+    }
+  };
+
+  const handleCancelMessage = async (messageId: string) => {
+    if (!selectedRoomId) return;
+    try {
+      await cancelChatMessage(selectedRoomId, messageId);
+      setContextMenu(null);
+    } catch (err) {
+      console.error("Failed to cancel message:", err);
     }
   };
 
@@ -591,73 +621,93 @@ export default function ChatPage() {
                       )}
                       <div className={styles.bubbleContainer}>
                         {(() => {
-                          const leafStage = getLeafStage(msg.created_at);
-                          const leafBubbleClass = `${styles.bubble} ${
-                            isMe ? styles.outgoingBubble : styles.incomingBubble
-                          } ${styles[`leaf-${leafStage}`]} ${
-                            isMe ? styles[`leaf-outgoing-${leafStage}`] : styles[`leaf-incoming-${leafStage}`]
-                          }`;
-                          return (
-                            <div className={leafBubbleClass}>
-                              {(msg.image_url || msg.image_deleted) && (
-                            isImageExpired(msg) || msg.image_deleted ? (
-                              <div 
-                                className={styles.expiredImagePlaceholder}
-                                style={{ marginBottom: msg.content_text ? "8px" : "0" }}
-                              >
-                                <span>🐛 画像は虫に食べられちゃった！（送信から1週間経過）</span>
-                              </div>
-                            ) : (
-                              msg.image_url && msg.image_url.includes("shared_emojis") ? (
-                                <div 
-                                  className={styles.emojiImageWrapper}
-                                  style={{ marginBottom: msg.content_text ? "8px" : "0" }}
-                                >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={msg.image_url}
-                                    alt="絵文字"
-                                    className={`${styles.emojiImage} ${styles.noSelectImage}`}
-                                    onContextMenu={(e) => e.preventDefault()}
-                                    onDragStart={(e) => e.preventDefault()}
-                                    style={{ pointerEvents: "none" }}
-                                  />
-                                </div>
-                              ) : (
-                                <div 
-                                  className={styles.messageImageWrapper} 
-                                  style={{ 
-                                    marginBottom: msg.content_text ? "8px" : "0",
-                                    cursor: "zoom-in"
-                                  }}
-                                  onClick={() => setZoomImageUrl(msg.image_url)}
-                                >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={msg.image_url || ""}
-                                    alt="添付画像"
-                                    className={`${styles.messageImage} ${styles.noSelectImage}`}
-                                    onContextMenu={(e) => e.preventDefault()}
-                                    onDragStart={(e) => e.preventDefault()}
-                                    style={{ pointerEvents: "none" }}
-                                  />
-                                </div>
-                              )
-                            )
-                          )}
-                          {msg.content_text && <p style={{ margin: 0 }}>{msg.content_text}</p>}
-                        </div>
-                      );
-                    })()}
-                      </div>
-                      <div
-                        className={`${styles.metaContainer} ${
-                          isMe ? styles.outgoingMeta : styles.incomingMeta
-                        }`}
-                      >
-                        {isMe && msg.isRead && (
-                          <span className={styles.readStatus}>既読</span>
-                        )}
+                           const leafStage = getLeafStage(msg.created_at);
+                           const leafBubbleClass = msg.canceled
+                             ? `${styles.bubble} ${styles.canceledBubble}`
+                             : `${styles.bubble} ${
+                                 isMe ? styles.outgoingBubble : styles.incomingBubble
+                               } ${styles[`leaf-${leafStage}`]} ${
+                                 isMe ? styles[`leaf-outgoing-${leafStage}`] : styles[`leaf-incoming-${leafStage}`]
+                               }`;
+                           return (
+                             <div
+                               className={leafBubbleClass}
+                               onContextMenu={(e) => {
+                                 if (isMe && !msg.canceled && !isSystem) {
+                                   e.preventDefault();
+                                   setContextMenu({
+                                     x: e.clientX,
+                                     y: e.clientY,
+                                     messageId: msg.id
+                                   });
+                                 }
+                               }}
+                             >
+                               {msg.canceled ? (
+                                 <p style={{ margin: 0 }}>送信が取り消されました</p>
+                               ) : (
+                                 <>
+                                   {(msg.image_url || msg.image_deleted) && (
+                                     isImageExpired(msg) || msg.image_deleted ? (
+                                       <div 
+                                         className={styles.expiredImagePlaceholder}
+                                         style={{ marginBottom: msg.content_text ? "8px" : "0" }}
+                                       >
+                                         <span>🐛 画像は虫に食べられちゃった！（送信から1週間経過）</span>
+                                       </div>
+                                     ) : (
+                                       msg.image_url && msg.image_url.includes("shared_emojis") ? (
+                                         <div 
+                                           className={styles.emojiImageWrapper}
+                                           style={{ marginBottom: msg.content_text ? "8px" : "0" }}
+                                         >
+                                           {/* eslint-disable-next-line @next/next/no-img-element */}
+                                           <img
+                                             src={msg.image_url}
+                                             alt="絵文字"
+                                             className={`${styles.emojiImage} ${styles.noSelectImage}`}
+                                             onContextMenu={(e) => e.preventDefault()}
+                                             onDragStart={(e) => e.preventDefault()}
+                                             style={{ pointerEvents: "none" }}
+                                           />
+                                         </div>
+                                       ) : (
+                                         <div 
+                                           className={styles.messageImageWrapper} 
+                                           style={{ 
+                                             marginBottom: msg.content_text ? "8px" : "0",
+                                             cursor: "zoom-in"
+                                           }}
+                                           onClick={() => setZoomImageUrl(msg.image_url)}
+                                         >
+                                           {/* eslint-disable-next-line @next/next/no-img-element */}
+                                           <img
+                                             src={msg.image_url || ""}
+                                             alt="添付画像"
+                                             className={`${styles.messageImage} ${styles.noSelectImage}`}
+                                             onContextMenu={(e) => e.preventDefault()}
+                                             onDragStart={(e) => e.preventDefault()}
+                                             style={{ pointerEvents: "none" }}
+                                           />
+                                         </div>
+                                       )
+                                     )
+                                   )}
+                                   {msg.content_text && <p style={{ margin: 0 }}>{msg.content_text}</p>}
+                                 </>
+                               )}
+                             </div>
+                           );
+                         })()}
+                       </div>
+                       <div
+                         className={`${styles.metaContainer} ${
+                           isMe ? styles.outgoingMeta : styles.incomingMeta
+                         }`}
+                       >
+                         {isMe && msg.isRead && !msg.canceled && (
+                           <span className={styles.readStatus}>既読</span>
+                         )}
                         <span>{formatTime(msg.created_at)}</span>
                       </div>
                     </div>
@@ -773,6 +823,22 @@ export default function ChatPage() {
               style={{ pointerEvents: "none" }}
             />
           </div>
+        </div>
+      )}
+      {/* 右クリック送信取り消しコンテキストメニュー */}
+      {contextMenu && (
+        <div
+          className={styles.contextMenu}
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className={styles.contextMenuItem}
+            onClick={() => handleCancelMessage(contextMenu.messageId)}
+          >
+            <FontAwesomeIcon icon={faUndo} style={{ marginRight: "6px" }} />
+            送信取り消し
+          </button>
         </div>
       )}
     </div>
