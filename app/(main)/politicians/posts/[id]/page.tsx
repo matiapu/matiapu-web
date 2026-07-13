@@ -35,6 +35,8 @@ function Page({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [currentUserType, setCurrentUserType] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -46,10 +48,18 @@ function Page({ params }: PageProps) {
           const profile = await getUserProfile(user.uid);
           if (profile?.userType === 'politician') {
             router.push('/politicians/posts/create');
+            return;
           }
+          setCurrentUserType(profile?.userType || 'general');
         } catch (e) {
           console.error("Failed to check user role:", e);
+          setCurrentUserType('general');
+        } finally {
+          setAuthLoading(false);
         }
+      } else {
+        setCurrentUserType('general');
+        setAuthLoading(false);
       }
     });
     return () => unsubscribe();
@@ -57,6 +67,8 @@ function Page({ params }: PageProps) {
 
   // 1. データベースからデータをフェッチ & 必要に応じて自動シードを実行
   useEffect(() => {
+    if (authLoading || currentUserType === 'politician') return;
+
     async function fetchData() {
       try {
         // バックグラウンドでSeed APIを叩いて初期データを投入（既に存在する場合もあります）
@@ -146,7 +158,7 @@ function Page({ params }: PageProps) {
       }
     }
     fetchData();
-  }, []);
+  }, [authLoading, currentUserType]);
 
   // 2. 初期ロード完了時にURLの ID に応じたカードへスクロール
   useEffect(() => {
@@ -338,7 +350,7 @@ function Page({ params }: PageProps) {
     moveToNextPost();
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return <div className={styles.loading}>投稿を読み込み中...</div>;
   }
 

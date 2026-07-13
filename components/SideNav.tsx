@@ -86,7 +86,10 @@ export default function SideNav() {
       </Link>
 
       {userType !== "shop" && (
-        <Link href="/politicians/posts/1" className={styles.navItem}>
+        <Link 
+          href={userType === "politician" ? "/politicians/posts/create" : "/politicians/posts/1"} 
+          className={styles.navItem}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
