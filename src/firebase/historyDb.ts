@@ -54,8 +54,8 @@ export async function getViewHistoryForUser(userId: string): Promise<ViewHistory
     const histories: ViewHistory[] = [];
     querySnapshot.forEach((docSnap) => {
       histories.push({
-        id: docSnap.id,
-        ...docSnap.data()
+        ...docSnap.data(),
+        id: docSnap.id
       } as ViewHistory);
     });
 

@@ -130,6 +130,12 @@ function Page({ params }: PageProps) {
         // 投稿一覧のフィルタリング (非表示制御と議員向け公開範囲制限)
         const filteredPosts: LocalUIPost[] = [];
         for (const p of mappedPosts) {
+          // URLで指定されたターゲット投稿は無条件で表示する
+          if (p.id === id || p.postID === id) {
+            filteredPosts.push(p);
+            continue;
+          }
+
           // 議員の投稿は除外
           if (p.authorUserType === 'politician') continue;
 
@@ -170,6 +176,7 @@ function Page({ params }: PageProps) {
 
   // 2. 初期ロード完了時にURLの ID に応じたカードへスクロール
   useEffect(() => {
+    setIsCompleted(false);
     if (loading || posts.length === 0) return;
 
     const index = posts.findIndex(p => String(p.id) === id || p.postID === id);

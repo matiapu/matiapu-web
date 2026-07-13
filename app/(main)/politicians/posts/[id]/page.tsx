@@ -134,9 +134,10 @@ function Page({ params }: PageProps) {
           })
         );
 
-        // 議員ユーザーの投稿のみ表示、かつ自分がバッドした議員の投稿を除外
+        // 議員ユーザーの投稿のみ表示、かつ自分がバッドした議員の投稿を除外（ただしURL指定の投稿は除外しない）
         const filteredPosts = mappedPosts.filter(p => 
-          p.authorUserType === 'politician' && !badPoliticianUids.includes(p.userID)
+          (p.authorUserType === 'politician' && !badPoliticianUids.includes(p.userID)) ||
+          p.id === id || p.postID === id
         );
         setPosts(filteredPosts);
       } catch (err) {
@@ -150,6 +151,7 @@ function Page({ params }: PageProps) {
 
   // 2. 初期ロード完了時にURLの ID に応じたカードへスクロール
   useEffect(() => {
+    setIsCompleted(false);
     if (loading || posts.length === 0) return;
 
     const index = posts.findIndex(p => String(p.id) === id || p.postID === id);
