@@ -34,26 +34,39 @@
 .threadList {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 8px 12px;
 }
 
 .threadItem {
   display: flex;
   align-items: center;
-  padding: 16px 24px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
   gap: 16px;
   cursor: pointer;
   transition: background-color 0.2s;
-  border-left: 4px solid transparent;
+  border-radius: 25px;
+  position: relative;
 }
 
 .threadItem:hover {
-  background-color: #f8fafc;
+  background-color: #f1f5f9;
 }
 
 .activeThread {
   background-color: #eff6ff;
-  border-left-color: #0052cc;
+}
+
+.activeThread::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background-color: #0052cc;
+  border-radius: 2px;
 }
 
 .activeThread:hover {
@@ -178,18 +191,6 @@
   pointer-events: none;
 }
 
-/* 文字可読性を高めるためのホワイト透過レイヤー */
-.chatArea::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(248, 250, 252, 0.65); /* メッセージがはっきり読める半透明度 */
-  z-index: -1;
-  pointer-events: none;
-}
 
 .chatHeader {
   height: 72px;
@@ -197,8 +198,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e2e8f0;
   background-color: #ffffff;
+  border-radius: 30px;
+  width: calc(100% - 48px);
+  max-width: 900px;
+  margin: 24px auto 12px auto;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .chatPartnerInfo {
@@ -272,8 +278,8 @@
 
 .dateText {
   font-size: 12px;
-  color: #94a3b8;
-  background-color: #f1f5f9;
+  color: #ffffff;
+  background-color: #64748b;
   padding: 4px 12px;
   border-radius: 12px;
   font-weight: 500;
@@ -508,7 +514,7 @@
   align-items: flex-end;
   justify-content: flex-end;
   font-size: 11px;
-  color: #94a3b8;
+  color: #ffffff;
   min-width: 45px;
   flex-shrink: 0;
   margin-bottom: 4px;
@@ -530,13 +536,14 @@
 
 /* --- Bottom Input Form Area --- */
 .inputAreaContainer {
-  border-top: 1px solid #e2e8f0;
-  background-color: #ffffff;
+  border-top: none;
+  background-color: transparent;
   padding: 16px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  margin-bottom: 24px;
 }
 
 .inputBar {
@@ -621,7 +628,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #94a3b8;
+  color: #ffffff;
 }
 
 .encryptionIcon {
@@ -630,13 +637,14 @@
 
 .systemChatNotice {
   padding: 24px;
-  background-color: #f8fafc;
-  border-top: 1px solid #e2e8f0;
+  background-color: transparent;
+  border-top: none;
   text-align: center;
-  color: #64748b;
+  color: #ffffff;
   font-weight: 500;
   font-size: 0.95rem;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  box-shadow: none;
+  margin-bottom: 24px;
 }
 
 /* --- Footer --- */

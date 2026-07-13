@@ -505,9 +505,6 @@ export default function ChatPage() {
     <div className={styles.container}>
       {/* 1. 左側スレッド一覧 */}
       <aside className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <h2 className={styles.sidebarTitle}>メッセージ</h2>
-        </div>
         <div className={styles.threadList}>
           {rooms.map((room) => (
             <div
@@ -781,23 +778,8 @@ export default function ChatPage() {
                   <FontAwesomeIcon icon={faPaperPlane} size="sm" />
                 </button>
               </form>
-              <div className={styles.encryptionNotice}>
-                <FontAwesomeIcon icon={faLock} className={styles.encryptionIcon} />
-                <span>エンドツーエンド暗号化で保護されています</span>
-              </div>
             </div>
           )}
-
-          {/* フッターリンク部分 */}
-          <footer className={styles.chatFooter}>
-            <div className={styles.footerLinks}>
-              <Link href="#" className={styles.footerLink}>Privacy Policy</Link>
-              <Link href="#" className={styles.footerLink}>Terms of Service</Link>
-              <Link href="#" className={styles.footerLink}>Security Center</Link>
-              <Link href="#" className={styles.footerLink}>Support</Link>
-            </div>
-            <p className={styles.copyright}>&copy; 2024 Machiapp Security. All rights reserved.</p>
-          </footer>
         </main>
       ) : (
         <div className={styles.noChatSelected}>
