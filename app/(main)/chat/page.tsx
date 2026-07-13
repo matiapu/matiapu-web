@@ -787,17 +787,6 @@ export default function ChatPage() {
               </div>
             </div>
           )}
-
-          {/* フッターリンク部分 */}
-          <footer className={styles.chatFooter}>
-            <div className={styles.footerLinks}>
-              <Link href="#" className={styles.footerLink}>Privacy Policy</Link>
-              <Link href="#" className={styles.footerLink}>Terms of Service</Link>
-              <Link href="#" className={styles.footerLink}>Security Center</Link>
-              <Link href="#" className={styles.footerLink}>Support</Link>
-            </div>
-            <p className={styles.copyright}>&copy; 2024 Machiapp Security. All rights reserved.</p>
-          </footer>
         </main>
       ) : (
         <div className={styles.noChatSelected}>
