@@ -178,18 +178,6 @@
   pointer-events: none;
 }
 
-/* 文字可読性を高めるためのホワイト透過レイヤー */
-.chatArea::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(248, 250, 252, 0.65); /* メッセージがはっきり読める半透明度 */
-  z-index: -1;
-  pointer-events: none;
-}
 
 .chatHeader {
   height: 72px;
