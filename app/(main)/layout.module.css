@@ -1,0 +1,21 @@
+.container {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+  background-color: #f5f8ff;
+}
+
+.mainContent {
+  flex: 1;
+  padding-left: 72px; /* SideNavの基本幅 */
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 480px) {
+  .mainContent {
+    padding-left: 72px; /* モバイルでもSideNavがそのまま配置されるため固定 */
+  }
+}
