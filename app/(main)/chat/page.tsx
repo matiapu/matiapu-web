@@ -781,10 +781,6 @@ export default function ChatPage() {
                   <FontAwesomeIcon icon={faPaperPlane} size="sm" />
                 </button>
               </form>
-              <div className={styles.encryptionNotice}>
-                <FontAwesomeIcon icon={faLock} className={styles.encryptionIcon} />
-                <span>エンドツーエンド暗号化で保護されています</span>
-              </div>
             </div>
           )}
         </main>
