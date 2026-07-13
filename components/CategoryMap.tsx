@@ -130,33 +130,50 @@ function PrefectureLayers({ locations, selectedCategory }: PrefectureLayersProps
   return null;
 }
 
+const PREFECTURE_CODES: Record<string, string> = {
+  "北海道": "01", "青森県": "02", "岩手県": "03", "宮城県": "04", "秋田県": "05",
+  "山形県": "06", "福島県": "07", "茨城県": "08", "栃木県": "09", "群馬県": "10",
+  "埼玉県": "11", "千葉県": "12", "東京都": "13", "神奈川県": "14", "新潟県": "15",
+  "富山県": "16", "石川県": "17", "福井県": "18", "山梨県": "19", "長野県": "20",
+  "岐阜県": "21", "静岡県": "22", "愛知県": "23", "三重県": "24", "滋賀県": "25",
+  "京都府": "26", "大阪府": "27", "兵庫県": "28", "奈良県": "29", "和歌山県": "30",
+  "鳥取県": "31", "島根県": "32", "岡山県": "33", "広島県": "34", "山口県": "35",
+  "徳島県": "36", "香川県": "37", "愛媛県": "38", "高知県": "39", "福岡県": "40",
+  "佐賀県": "41", "長崎県": "42", "熊本県": "43", "大分県": "44", "宮崎県": "45",
+  "鹿児島県": "46", "沖縄県": "47"
+};
+
 interface DistrictLayersProps {
   userAddress: string;
 }
 
-// 東京都および神奈川県の市区町村（区）の境界をロードし、ユーザーの所属区以外をグレーアウトするコンポーネント
+// 日本全国の都道府県に対応した、ユーザーの所属区（または市区町村）以外をグレーアウトするコンポーネント
 function DistrictLayers({ userAddress }: DistrictLayersProps) {
   const map = useMap();
 
   useEffect(() => {
     if (!map || !window.google || !window.google.maps) return;
 
-    // 対象の都道府県（神奈川県または東京都）のユーザーかどうかを判定
-    const isTargetUser = 
-      userAddress.trim().startsWith("神奈川県") || userAddress.trim().includes("神奈川") ||
-      userAddress.trim().startsWith("東京都") || userAddress.trim().includes("東京");
-      
-    if (!isTargetUser) return;
+    // ユーザー住所から所属する都道府県コードを特定
+    let prefCode = "";
+    for (const [prefName, code] of Object.entries(PREFECTURE_CODES)) {
+      if (userAddress.includes(prefName)) {
+        prefCode = code;
+        break;
+      }
+    }
+
+    if (!prefCode) return;
 
     const dataLayer = new window.google.maps.Data();
     dataLayer.setMap(map);
 
     let isMounted = true;
-    const geoJsonUrl = "/data/districts-boundaries.json";
+    const geoJsonUrl = `/data/boundaries/${prefCode}.json`;
 
     fetch(geoJsonUrl)
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch district boundaries");
+        if (!res.ok) throw new Error(`Failed to fetch boundaries for pref code ${prefCode}`);
         return res.json();
       })
       .then((geoJson) => {
@@ -165,32 +182,26 @@ function DistrictLayers({ userAddress }: DistrictLayersProps) {
         dataLayer.addGeoJson(geoJson);
 
         dataLayer.setStyle((feature) => {
-          const n03_001 = feature.getProperty("N03_001") as string | null | undefined;
           const n03_003 = feature.getProperty("N03_003") as string | null | undefined;
           const n03_004 = feature.getProperty("N03_004") as string | null | undefined;
           const cleanAddr = userAddress.replace(/\s+/g, '');
           let isMatch = false;
 
-          // ユーザー住所がその都道府県の市区町村・区にマッチするか判定
-          const isPrefectureMatch = n03_001 && cleanAddr.includes(n03_001);
-
-          if (isPrefectureMatch) {
-            if (n03_003) {
-              // 政令指定都市（横浜市、川崎市、相模原市）
-              const fullName = n03_003 + (n03_004 || "");
-              if (cleanAddr.includes(fullName)) {
+          if (n03_003) {
+            // 政令指定都市の区
+            const fullName = n03_003 + (n03_004 || "");
+            if (cleanAddr.includes(fullName)) {
+              isMatch = true;
+            } else if (n03_004 && cleanAddr.includes(n03_004)) {
+              // 同名区（南区、緑区、中央区等）の重複マッチを避けるため、他の市名が含まれる場合はマッチさせない
+              const hasOtherCity = cleanAddr.includes("市") && !cleanAddr.includes(n03_003);
+              if (!hasOtherCity) {
                 isMatch = true;
-              } else if (n03_004 && cleanAddr.includes(n03_004)) {
-                const hasOtherCity = (n03_003 === "横浜市" && cleanAddr.includes("相模原")) ||
-                                     (n03_003 === "相模原市" && cleanAddr.includes("横浜"));
-                if (!hasOtherCity) {
-                  isMatch = true;
-                }
               }
-            } else if (n03_004) {
-              // 東京23区、およびその他の市町村
-              isMatch = cleanAddr.includes(n03_004);
             }
+          } else if (n03_004) {
+            // その他の市区町村、東京23区
+            isMatch = cleanAddr.includes(n03_004);
           }
 
           if (isMatch) {
@@ -203,22 +214,14 @@ function DistrictLayers({ userAddress }: DistrictLayersProps) {
               zIndex: 2
             };
           } else {
-            // 所属する都道府県と同じ都道府県の別エリアはグレーアウト、他県はスッキリさせるため非表示
-            const isSamePref = n03_001 && cleanAddr.includes(n03_001);
-            if (isSamePref) {
-              return {
-                fillColor: "#1e293b",
-                fillOpacity: 0.45,
-                strokeColor: "#475569",
-                strokeWeight: 1.0,
-                visible: true,
-                zIndex: 1
-              };
-            } else {
-              return {
-                visible: false
-              };
-            }
+            return {
+              fillColor: "#1e293b",
+              fillOpacity: 0.45,
+              strokeColor: "#475569",
+              strokeWeight: 1.0,
+              visible: true,
+              zIndex: 1
+            };
           }
         });
       })
