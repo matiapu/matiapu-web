@@ -147,60 +147,63 @@ interface DistrictLayersProps {
   userAddress: string;
 }
 
-// 日本全国の都道府県に対応した、ユーザーの所属区（または市区町村）以外をグレーアウトするコンポーネント
+// 日本全国の都道府県に対応した、ユーザーの所属区（または市区町村）以外をグレーアウトするコンポーネント (ダブル・データレイヤー方式)
 function DistrictLayers({ userAddress }: DistrictLayersProps) {
   const map = useMap();
 
   useEffect(() => {
     if (!map || !window.google || !window.google.maps) return;
 
-    // ユーザー住所から所属する都道府県コードを特定
+    // ユーザー住所から所属する都道府県コードおよび都道府県名を特定
     let prefCode = "";
-    for (const [prefName, code] of Object.entries(PREFECTURE_CODES)) {
-      if (userAddress.includes(prefName)) {
+    let prefName = "";
+    for (const [name, code] of Object.entries(PREFECTURE_CODES)) {
+      if (userAddress.includes(name)) {
         prefCode = code;
+        prefName = name;
         break;
       }
     }
 
-    if (!prefCode) return;
-
-    const dataLayer = new window.google.maps.Data();
-    dataLayer.setMap(map);
+    if (!prefCode || !prefName) return;
 
     let isMounted = true;
-    const geoJsonUrl = `/data/boundaries/${prefCode}.json`;
 
-    fetch(geoJsonUrl)
+    // 1. 居住都道府県の市区町村境界レイヤー (登録区以外をグレーにする)
+    const localDataLayer = new window.google.maps.Data();
+    localDataLayer.setMap(map);
+
+    // 2. 他都道府県の境界レイヤー (居住都府県以外をすべてグレーにする)
+    const otherPrefDataLayer = new window.google.maps.Data();
+    otherPrefDataLayer.setMap(map);
+
+    // 居住都道府県の市区町村データのロード
+    const localGeoJsonUrl = `/data/boundaries/${prefCode}.json`;
+    fetch(localGeoJsonUrl)
       .then((res) => {
         if (!res.ok) throw new Error(`Failed to fetch boundaries for pref code ${prefCode}`);
         return res.json();
       })
       .then((geoJson) => {
         if (!isMounted) return;
-
-        dataLayer.addGeoJson(geoJson);
-
-        dataLayer.setStyle((feature) => {
+        localDataLayer.addGeoJson(geoJson);
+        localDataLayer.setStyle((feature) => {
           const n03_003 = feature.getProperty("N03_003") as string | null | undefined;
           const n03_004 = feature.getProperty("N03_004") as string | null | undefined;
           const cleanAddr = userAddress.replace(/\s+/g, '');
           let isMatch = false;
 
           if (n03_003) {
-            // 政令指定都市の区
             const fullName = n03_003 + (n03_004 || "");
             if (cleanAddr.includes(fullName)) {
               isMatch = true;
             } else if (n03_004 && cleanAddr.includes(n03_004)) {
-              // 同名区（南区、緑区、中央区等）の重複マッチを避けるため、他の市名が含まれる場合はマッチさせない
               const hasOtherCity = cleanAddr.includes("市") && !cleanAddr.includes(n03_003);
               if (!hasOtherCity) {
                 isMatch = true;
               }
             }
           } else if (n03_004) {
-            // その他の市区町村、東京23区
             isMatch = cleanAddr.includes(n03_004);
           }
 
@@ -208,14 +211,14 @@ function DistrictLayers({ userAddress }: DistrictLayersProps) {
             return {
               fillColor: "transparent",
               fillOpacity: 0.0,
-              strokeColor: "#4f46e5",
+              strokeColor: "#4f46e5", // ハイライト（インディゴブルー）
               strokeWeight: 2.5,
               visible: true,
               zIndex: 2
             };
           } else {
             return {
-              fillColor: "#1e293b",
+              fillColor: "#1e293b", // 他区をグレーアウト
               fillOpacity: 0.45,
               strokeColor: "#475569",
               strokeWeight: 1.0,
@@ -226,12 +229,40 @@ function DistrictLayers({ userAddress }: DistrictLayersProps) {
         });
       })
       .catch((err) => {
-        console.error("Error loading district layers:", err);
+        console.error("Error loading local district layers:", err);
       });
+
+    // 全国都道府県データのロード（他県をグレーにする用）
+    const prefGeoJsonUrl = "https://raw.githubusercontent.com/geolonia/prefecture-tiles/master/prefectures.geojson";
+    otherPrefDataLayer.loadGeoJson(prefGeoJsonUrl, null, (features) => {
+      if (!isMounted) return;
+
+      otherPrefDataLayer.setStyle((feature) => {
+        const featurePrefName = feature.getProperty("name") as string;
+        
+        // 居住都道府県は非表示にする（居住都府県内はlocalDataLayerで詳細に描画するため）
+        if (featurePrefName === prefName) {
+          return {
+            visible: false
+          };
+        }
+
+        // 居住都道府県以外のすべての他県をグレーアウトする
+        return {
+          fillColor: "#1e293b",
+          fillOpacity: 0.45,
+          strokeColor: "#475569",
+          strokeWeight: 1.0,
+          visible: true,
+          zIndex: 1
+        };
+      });
+    });
 
     return () => {
       isMounted = false;
-      dataLayer.setMap(null);
+      localDataLayer.setMap(null);
+      otherPrefDataLayer.setMap(null);
     };
   }, [map, userAddress]);
 
