@@ -89,8 +89,8 @@ export async function getQAQuestion(questionId: string): Promise<QAQuestion | nu
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return {
-        id: docSnap.id,
-        ...docSnap.data()
+        ...docSnap.data(),
+        id: docSnap.id
       } as QAQuestion;
     }
     return null;
@@ -181,8 +181,8 @@ export async function getQAQuestions(
 
     querySnapshot.forEach((docSnap) => {
       questions.push({
-        id: docSnap.id,
-        ...docSnap.data()
+        ...docSnap.data(),
+        id: docSnap.id
       } as QAQuestion);
     });
 
@@ -233,9 +233,9 @@ export async function getQAAnswersForQuestion(questionId: string): Promise<QAAns
 
     querySnapshot.forEach((docSnap) => {
       answers.push({
+        ...docSnap.data(),
         id: docSnap.id,
-        question_id: questionId,
-        ...docSnap.data()
+        question_id: questionId
       } as QAAnswer);
     });
 

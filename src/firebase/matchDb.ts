@@ -218,8 +218,8 @@ export async function getMatchesForUser(
     
     querySnapshot.forEach((docSnap) => {
       matches.push({
-        id: docSnap.id,
-        ...docSnap.data()
+        ...docSnap.data(),
+        id: docSnap.id
       } as Match);
     });
     
@@ -254,8 +254,8 @@ export async function getMatchesForPolitician(
     
     querySnapshot.forEach((docSnap) => {
       matches.push({
-        id: docSnap.id,
-        ...docSnap.data()
+        ...docSnap.data(),
+        id: docSnap.id
       } as Match);
     });
     

@@ -154,6 +154,7 @@ function Page({ params }: PageProps) {
             return p.authorUserType === 'politician' && !badPoliticianUids.includes(p.userID);
           }
         });
+
         setPosts(filteredPosts);
       } catch (err) {
         console.error("Error fetching posts data from Firestore:", err);
@@ -166,6 +167,7 @@ function Page({ params }: PageProps) {
 
   // 2. 初期ロード完了時にURLの ID に応じたカードへスクロール
   useEffect(() => {
+    setIsCompleted(false);
     if (loading || posts.length === 0) return;
 
     const index = posts.findIndex(p => String(p.id) === id || p.postID === id);

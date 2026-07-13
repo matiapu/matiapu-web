@@ -7,11 +7,21 @@ import { Post as UIPost } from '@/data/posts'
 
 interface PostCardProps {
   post: UIPost;
+  isActive?: boolean;
 }
 
-function PostCard({ post }: PostCardProps) {
+function PostCard({ post, isActive }: PostCardProps) {
     // 投稿が開いているかどうかを管理するステート（初期値は false = 閉じている
     const [isOpen, setIsOpen] = useState(false)
+    const [prevActive, setPrevActive] = useState(isActive)
+
+    // アクティブ状態でなくなった場合、自動的にカードを閉じる
+    if (isActive !== prevActive) {
+        setPrevActive(isActive)
+        if (isActive === false) {
+            setIsOpen(false)
+        }
+    }
 
     const MAX_LENGTH = 100
 

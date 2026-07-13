@@ -190,14 +190,35 @@ export async function decryptContent(
   }
 
   const cryptoObj = getCrypto();
-  const decoder = new TextDecoder();
+  const decoder = new TextEncoder().encoding ? new TextDecoder() : new TextDecoder("utf-8"); // Safe text decoder
   const key = await deriveRoomKey(roomId);
   
-  const encrypted = base64ToArrayBuffer(encryptedBase64);
+  let encrypted = base64ToArrayBuffer(encryptedBase64);
   const iv = base64ToArrayBuffer(ivBase64);
   
   if (iv.byteLength === 0) {
     throw new Error("Invalid initialization vector length");
+  }
+  
+  // iOS (CryptoKit) の combined 形式 (nonce 12bytes + ciphertext + tag 16bytes) に対処するためのフォールバック処理
+  // デコードした暗号化データ（encrypted）の先頭12バイトが、別途格納されている iv (nonce) と完全に一致する場合、
+  // それは iOS が結合形式で書き込んだデータであるため、先頭の12バイト（nonce）を切り捨ててから Web Crypto API に渡します。
+  const ivBytes = new Uint8Array(iv);
+  const encryptedBytes = new Uint8Array(encrypted);
+  
+  let startsWithIv = false;
+  if (encryptedBytes.length >= 12 && ivBytes.length === 12) {
+    startsWithIv = true;
+    for (let i = 0; i < 12; i++) {
+      if (encryptedBytes[i] !== ivBytes[i]) {
+        startsWithIv = false;
+        break;
+      }
+    }
+  }
+  
+  if (startsWithIv) {
+    encrypted = encrypted.slice(12);
   }
   
   const decrypted = await cryptoObj.subtle.decrypt(

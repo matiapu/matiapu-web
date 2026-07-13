@@ -90,8 +90,8 @@ export async function getDisaster(disasterId: string): Promise<Disaster | null> 
     if (docSnap.exists()) {
       const data = docSnap.data();
       return {
-        id: docSnap.id,
-        ...data
+        ...data,
+        id: docSnap.id
       } as Disaster;
     }
     return null;
@@ -151,8 +151,8 @@ export async function getDisasters(): Promise<Disaster[]> {
     const disasters: Disaster[] = [];
     querySnapshot.forEach((docSnap) => {
       disasters.push({
-        id: docSnap.id,
-        ...docSnap.data()
+        ...docSnap.data(),
+        id: docSnap.id
       } as Disaster);
     });
     return disasters;
