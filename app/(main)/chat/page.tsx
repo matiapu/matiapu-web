@@ -505,9 +505,6 @@ export default function ChatPage() {
     <div className={styles.container}>
       {/* 1. 左側スレッド一覧 */}
       <aside className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <h2 className={styles.sidebarTitle}>メッセージ</h2>
-        </div>
         <div className={styles.threadList}>
           {rooms.map((room) => (
             <div
