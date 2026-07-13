@@ -153,6 +153,17 @@ function PoliticianCreatePost() {
   return (
     <div className={styles.container}>
       <div className={styles.formCard}>
+        <button 
+          onClick={() => router.push('/politicians/posts/1')} 
+          className={styles.backBtn}
+          type="button"
+        >
+          <svg className={styles.backIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          一覧に戻る
+        </button>
         <div className={styles.cardHeader}>
           <h1 className={styles.title}>新規投稿の作成</h1>
           <p className={styles.subtitle}>議員活動の報告や、街づくりのビジョンを共有しましょう。</p>
