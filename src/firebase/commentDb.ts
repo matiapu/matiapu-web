@@ -76,8 +76,8 @@ export async function getComment(commentId: string): Promise<Comment | null> {
     if (docSnap.exists()) {
       const data = docSnap.data();
       return {
-        id: docSnap.id,
-        ...data
+        ...data,
+        id: docSnap.id
       } as Comment;
     }
     return null;
@@ -160,8 +160,8 @@ export async function getCommentsForPost(
     let comments: Comment[] = [];
     querySnapshot.forEach((docSnap) => {
       comments.push({
-        id: docSnap.id,
-        ...docSnap.data()
+        ...docSnap.data(),
+        id: docSnap.id
       } as Comment);
     });
 
@@ -207,8 +207,8 @@ export async function getRepliesForComment(commentId: string): Promise<Comment[]
     const replies: Comment[] = [];
     querySnapshot.forEach((docSnap) => {
       replies.push({
-        id: docSnap.id,
-        ...docSnap.data()
+        ...docSnap.data(),
+        id: docSnap.id
       } as Comment);
     });
 
@@ -245,8 +245,8 @@ export async function getThreadComments(rootCommentId: string): Promise<Comment[
     const replies: Comment[] = [];
     querySnapshot.forEach((docSnap) => {
       replies.push({
-        id: docSnap.id,
-        ...docSnap.data()
+        ...docSnap.data(),
+        id: docSnap.id
       } as Comment);
     });
 
