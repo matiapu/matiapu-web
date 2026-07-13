@@ -143,12 +143,55 @@ const PREFECTURE_CODES: Record<string, string> = {
   "鹿児島県": "46", "沖縄県": "47"
 };
 
+// 点がポリゴン内部にあるかを判定するレイ・キャスティング・アルゴリズム (Point-in-Polygon)
+function isPointInPolygon(point: { lat: number; lng: number }, vs: [number, number][]) {
+  const x = point.lng;
+  const y = point.lat;
+  
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i][0], yi = vs[i][1];
+    const xj = vs[j][0], yj = vs[j][1];
+    
+    const intersect = ((yi > y) !== (yj > y))
+        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  
+  return inside;
+}
+
+// GeoJSONのPolygon内に点があるか判定する関数 (1つ目が外輪、2つ目以降が穴)
+function isPointInGeoJSONPolygon(point: { lat: number; lng: number }, polygonCoords: any[][]) {
+  if (!Array.isArray(polygonCoords) || polygonCoords.length === 0) return false;
+  const inOuter = isPointInPolygon(point, polygonCoords[0]);
+  if (!inOuter) return false;
+  for (let k = 1; k < polygonCoords.length; k++) {
+    if (isPointInPolygon(point, polygonCoords[k])) {
+      return false; // 穴の中にあるなら外側
+    }
+  }
+  return true;
+}
+
+// GeoJSONのMultiPolygon内に点があるか判定する関数
+function isPointInGeoJSONMultiPolygon(point: { lat: number; lng: number }, multiPolygonCoords: any[][][]) {
+  if (!Array.isArray(multiPolygonCoords)) return false;
+  for (const polygonCoords of multiPolygonCoords) {
+    if (isPointInGeoJSONPolygon(point, polygonCoords)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 interface DistrictLayersProps {
   userAddress: string;
+  onDistrictLoad?: (geometry: any) => void;
 }
 
 // 日本全国の都道府県に対応した、ユーザーの所属区（または市区町村）以外をグレーアウトするコンポーネント (ダブル・データレイヤー方式)
-function DistrictLayers({ userAddress }: DistrictLayersProps) {
+function DistrictLayers({ userAddress, onDistrictLoad }: DistrictLayersProps) {
   const map = useMap();
 
   useEffect(() => {
@@ -165,7 +208,10 @@ function DistrictLayers({ userAddress }: DistrictLayersProps) {
       }
     }
 
-    if (!prefCode || !prefName) return;
+    if (!prefCode || !prefName) {
+      if (onDistrictLoad) onDistrictLoad(null);
+      return;
+    }
 
     let isMounted = true;
 
@@ -187,10 +233,35 @@ function DistrictLayers({ userAddress }: DistrictLayersProps) {
       .then((geoJson) => {
         if (!isMounted) return;
         localDataLayer.addGeoJson(geoJson);
+
+        // ユーザー登録区に一致するフィーチャーを検索し、親にgeometryを伝搬する
+        const cleanAddr = userAddress.replace(/\s+/g, '');
+        const matchFeature = geoJson.features.find((feature: any) => {
+          const n03_003 = feature.properties.N03_003;
+          const n03_004 = feature.properties.N03_004;
+
+          if (n03_003) {
+            const fullName = n03_003 + (n03_004 || "");
+            if (cleanAddr.includes(fullName)) return true;
+            if (n03_004 && cleanAddr.includes(n03_004)) {
+              const hasOtherCity = cleanAddr.includes("市") && !cleanAddr.includes(n03_003);
+              if (!hasOtherCity) return true;
+            }
+          } else if (n03_004) {
+            return cleanAddr.includes(n03_004);
+          }
+          return false;
+        });
+
+        if (matchFeature && matchFeature.geometry) {
+          if (onDistrictLoad) onDistrictLoad(matchFeature.geometry);
+        } else {
+          if (onDistrictLoad) onDistrictLoad(null);
+        }
+
         localDataLayer.setStyle((feature) => {
           const n03_003 = feature.getProperty("N03_003") as string | null | undefined;
           const n03_004 = feature.getProperty("N03_004") as string | null | undefined;
-          const cleanAddr = userAddress.replace(/\s+/g, '');
           let isMatch = false;
 
           if (n03_003) {
@@ -230,6 +301,7 @@ function DistrictLayers({ userAddress }: DistrictLayersProps) {
       })
       .catch((err) => {
         console.error("Error loading local district layers:", err);
+        if (onDistrictLoad) onDistrictLoad(null);
       });
 
     // 全国都道府県データのロード（他県をグレーにする用）
@@ -240,7 +312,7 @@ function DistrictLayers({ userAddress }: DistrictLayersProps) {
       otherPrefDataLayer.setStyle((feature) => {
         const featurePrefName = feature.getProperty("name") as string;
         
-        // 居住都道府県は非表示にする（居住都府県内はlocalDataLayerで詳細に描画するため）
+        // 居住都道府県は非表示にする（居住都府県内 is localDataLayerで詳細に描画するため）
         if (featurePrefName === prefName) {
           return {
             visible: false
@@ -403,6 +475,7 @@ function CategoryMap() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInteracted, setIsInteracted] = useState(false);
+  const [userDistrictGeometry, setUserDistrictGeometry] = useState<any>(null);
 
   useEffect(() => {
     if (isInteracted) return;
@@ -725,9 +798,27 @@ function CategoryMap() {
   } 
 
   // 表示するピンをフィルタリング
-  const filteredLocations = selectedCategory 
+  let filteredLocations = selectedCategory 
     ? locations.filter(data => data.category === selectedCategory)
     : locations;
+
+  // ユーザー登録区が判別できている場合、その境界線内に位置するピンのみを表示する
+  if (userDistrictGeometry) {
+    filteredLocations = filteredLocations.filter((loc) => {
+      // 震源地や津波警告などの広域な災害マーカーは、フィルタリングの対象外として常に表示
+      if (loc.isEpicenter || loc.isPrefectureIntensity || loc.isTsunami) {
+        return true;
+      }
+      
+      const point = { lat: loc.lat, lng: loc.lng };
+      if (userDistrictGeometry.type === "Polygon") {
+        return isPointInGeoJSONPolygon(point, userDistrictGeometry.coordinates);
+      } else if (userDistrictGeometry.type === "MultiPolygon") {
+        return isPointInGeoJSONMultiPolygon(point, userDistrictGeometry.coordinates);
+      }
+      return true;
+    });
+  }
 
   // ユニークなカテゴリ一覧を取得
   const uniqueCategories = Array.from(
@@ -796,7 +887,7 @@ function CategoryMap() {
             >
               <MapController center={mapCenter} zoom={mapZoom} />
               <PrefectureLayers locations={locations} selectedCategory={selectedCategory} />
-              <DistrictLayers userAddress={userAddress} />
+              <DistrictLayers userAddress={userAddress} onDistrictLoad={setUserDistrictGeometry} />
               <AddressGeocoder address={userAddress} onGeocode={handleGeocode} skip={hasEarthquake} />
               {/* フィルタリングされた配列をループしてピンを配置 */}
               {filteredLocations.map((data, index) => {
