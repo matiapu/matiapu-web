@@ -195,6 +195,7 @@
 }
 
 .editButton {
+    position: relative;
     background-color: #ffffff;
     border: 1.5px solid #e2e8f0;
     color: #334155;
@@ -203,16 +204,52 @@
     padding: 10px 28px;
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: color 0.3s ease;
 }
 
 .editButton:hover {
-    background-color: #f8fafc;
-    border-color: #cbd5e1;
-    color: #0f172a;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    color: #3b82f6;
+}
+
+.editButton::after {
+    content: '';
+    position: absolute;
+    top: -1.5px;
+    left: -1.5px;
+    right: -1.5px;
+    bottom: -1.5px;
+    border: 1.5px solid #3b82f6;
+    border-radius: 10px;
+    pointer-events: none;
+    opacity: 0;
+    clip-path: polygon(50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%);
+    transition: opacity 0.2s ease;
+}
+
+.editButton:hover::after {
+    opacity: 1;
+    animation: border-draw 0.35s linear forwards;
+}
+
+@keyframes border-draw {
+    0% {
+        clip-path: polygon(50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%);
+    }
+    20% {
+        clip-path: polygon(50% 100%, 0% 100%, 0% 100%, 0% 100%, 0% 100%, 0% 100%);
+    }
+    40% {
+        clip-path: polygon(50% 100%, 0% 100%, 0% 0%, 0% 0%, 0% 0%, 0% 0%);
+    }
+    60% {
+        clip-path: polygon(50% 100%, 0% 100%, 0% 0%, 100% 0%, 100% 0%, 100% 0%);
+    }
+    80% {
+        clip-path: polygon(50% 100%, 0% 100%, 0% 0%, 100% 0%, 100% 100%, 100% 100%);
+    }
+    100% {
+        clip-path: polygon(50% 100%, 0% 100%, 0% 0%, 100% 0%, 100% 100%, 50% 100%);
+    }
 }
 
 /* Tabs Section */
