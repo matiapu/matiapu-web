@@ -214,9 +214,9 @@ function Profile() {
   const postsToShow = isLive ? userPosts : POSTS;
 
   return (
-    <div className={styles.profileWrapper}>
+    <div className={`${styles.profileWrapper} ${styles[userType]}`}>
       {/* Banner / Cover */}
-      <div className={`${styles.coverBanner} ${styles[userType]}`}></div>
+      <div className={styles.coverBanner}></div>
 
       <div className={styles.profileContainer}>
         {/* Profile Card Header */}
