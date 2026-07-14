@@ -10,7 +10,7 @@ import { getUserProfile, UserProfile } from '@/src/firebase/userDb';
 import { getPosts, getPost, Post as DbPost } from '@/src/firebase/postDb';
 import { getLikedPostIdsForUser } from '@/src/firebase/likeDb';
 import { getViewHistoryForUser } from '@/src/firebase/historyDb';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faHeart, faImage, faHistory } from '@fortawesome/free-solid-svg-icons';
 import { POSTS, Post as UIPost } from '@/data/posts';
@@ -24,6 +24,18 @@ function Profile() {
   const [historyPosts, setHistoryPosts] = useState<(UIPost & { viewedAt?: any })[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"posts" | "likes" | "history">("posts");
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+    // セッションCookieを削除
+    document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+    router.push("/login");
+    router.refresh();
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -271,6 +283,9 @@ function Profile() {
           <div className={styles.actionButtons}>
             <button className={styles.editButton} onClick={() => router.push("/settings")}>
               プロフィールを編集
+            </button>
+            <button className={styles.logoutButton} onClick={handleLogout}>
+              ログアウト
             </button>
           </div>
         </div>
