@@ -5,9 +5,10 @@ interface UserIconProps {
   iconUrl?: string | null;
   userName?: string;
   className?: string;
+  priority?: boolean;
 }
 
-export default function UserIcon({ iconUrl, userName = "ユーザー", className }: UserIconProps) {
+export default function UserIcon({ iconUrl, userName = "ユーザー", className, priority = false }: UserIconProps) {
   return (
     <div className={`${styles.userIcon} ${className || ""}`}>
       <Image
@@ -17,6 +18,7 @@ export default function UserIcon({ iconUrl, userName = "ユーザー", className
         sizes="300px"
         className={styles.iconImage}
         unoptimized
+        priority={priority}
       />
     </div>
   );

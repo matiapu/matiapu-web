@@ -223,7 +223,7 @@ function Profile() {
         <div className={styles.profileCard}>
           {/* Avatar Container */}
         <div className={styles.avatarContainer}>
-          <UserIcon iconUrl={avatarUrl} userName={displayName} className={styles.profileAvatar} />
+          <UserIcon iconUrl={avatarUrl} userName={displayName} className={styles.profileAvatar} priority />
         </div>
 
         {/* Profile Info */}
