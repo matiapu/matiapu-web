@@ -216,7 +216,7 @@ function Profile() {
   return (
     <div className={styles.profileWrapper}>
       {/* Banner / Cover */}
-      <div className={styles.coverBanner}></div>
+      <div className={`${styles.coverBanner} ${styles[userType]}`}></div>
 
       <div className={styles.profileContainer}>
         {/* Profile Card Header */}
