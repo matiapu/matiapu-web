@@ -1,9 +1,36 @@
+.profileWrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.profileWrapper.general {
+    --theme-primary: #3b82f6;
+    --theme-secondary: #06b6d4;
+    --theme-primary-hover: #2563eb;
+    --theme-primary-rgb: 59, 130, 246;
+}
+
+.profileWrapper.politician {
+    --theme-primary: #ef4444;
+    --theme-secondary: #f97316;
+    --theme-primary-hover: #dc2626;
+    --theme-primary-rgb: 239, 68, 68;
+}
+
+.profileWrapper.shop {
+    --theme-primary: #10b981;
+    --theme-secondary: #84cc16;
+    --theme-primary-hover: #059669;
+    --theme-primary-rgb: 16, 185, 129;
+}
+
 .profileContainer {
     display: flex;
     flex-direction: column;
     width: 100%;
     max-width: 800px;
-    margin: 40px auto;
+    margin: 0 auto;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     padding: 0 20px;
 }
@@ -12,19 +39,14 @@
 .coverBanner {
     height: 180px;
     width: 100%;
-    border-radius: 20px 20px 0 0;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+    border-radius: 0;
+    background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
     box-shadow: inset 0 -40px 80px rgba(0, 0, 0, 0.1);
 }
 
 /* Main Profile details card */
 .profileCard {
-    background-color: #ffffff;
-    border-radius: 0 0 20px 20px;
     padding: 0 32px 36px 32px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    border-top: none;
     margin-bottom: 32px;
 }
 
@@ -40,7 +62,6 @@
     width: 130px !important;
     height: 130px !important;
     border: 6px solid #ffffff !important;
-    box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.15) !important;
     border-radius: 50%;
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
@@ -59,11 +80,11 @@
 
 .nameSection {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
     margin-bottom: 12px;
-    flex-wrap: wrap;
 }
 
 .userName {
@@ -195,6 +216,7 @@
 }
 
 .editButton {
+    position: relative;
     background-color: #ffffff;
     border: 1.5px solid #e2e8f0;
     color: #334155;
@@ -203,16 +225,52 @@
     padding: 10px 28px;
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: color 0.3s ease;
 }
 
 .editButton:hover {
-    background-color: #f8fafc;
-    border-color: #cbd5e1;
-    color: #0f172a;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    color: var(--theme-primary);
+}
+
+.editButton::after {
+    content: '';
+    position: absolute;
+    top: -1.5px;
+    left: -1.5px;
+    right: -1.5px;
+    bottom: -1.5px;
+    border: 1.5px solid var(--theme-primary);
+    border-radius: 10px;
+    pointer-events: none;
+    opacity: 0;
+    clip-path: polygon(50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%);
+    transition: opacity 0.2s ease;
+}
+
+.editButton:hover::after {
+    opacity: 1;
+    animation: border-draw 0.35s linear forwards;
+}
+
+@keyframes border-draw {
+    0% {
+        clip-path: polygon(50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%);
+    }
+    20% {
+        clip-path: polygon(50% 100%, 0% 100%, 0% 100%, 0% 100%, 0% 100%, 0% 100%);
+    }
+    40% {
+        clip-path: polygon(50% 100%, 0% 100%, 0% 0%, 0% 0%, 0% 0%, 0% 0%);
+    }
+    60% {
+        clip-path: polygon(50% 100%, 0% 100%, 0% 0%, 100% 0%, 100% 0%, 100% 0%);
+    }
+    80% {
+        clip-path: polygon(50% 100%, 0% 100%, 0% 0%, 100% 0%, 100% 100%, 100% 100%);
+    }
+    100% {
+        clip-path: polygon(50% 100%, 0% 100%, 0% 0%, 100% 0%, 100% 100%, 50% 100%);
+    }
 }
 
 /* Tabs Section */
@@ -244,8 +302,8 @@
 }
 
 .tabBtnActive {
-    border-bottom-color: #3b82f6;
-    color: #3b82f6;
+    border-bottom-color: var(--theme-primary);
+    color: var(--theme-primary);
 }
 
 .tabIcon {
@@ -268,7 +326,7 @@
 }
 
 .spinner {
-    color: #3b82f6;
+    color: var(--theme-primary);
 }
 
 /* Empty Likes State */
@@ -298,7 +356,7 @@
 }
 
 .exploreBtn {
-    background-color: #3b82f6;
+    background-color: var(--theme-primary);
     color: #ffffff;
     border: none;
     padding: 10px 24px;
@@ -307,11 +365,11 @@
     font-size: 14px;
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s;
-    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 10px rgba(var(--theme-primary-rgb), 0.3);
 }
 
 .exploreBtn:hover {
-    background-color: #2563eb;
+    background-color: var(--theme-primary-hover);
     transform: translateY(-1px);
 }
 

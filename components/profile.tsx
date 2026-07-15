@@ -214,15 +214,16 @@ function Profile() {
   const postsToShow = isLive ? userPosts : POSTS;
 
   return (
-    <div className={styles.profileContainer}>
+    <div className={`${styles.profileWrapper} ${styles[userType]}`}>
       {/* Banner / Cover */}
       <div className={styles.coverBanner}></div>
 
-      {/* Profile Card Header */}
-      <div className={styles.profileCard}>
-        {/* Avatar Container */}
+      <div className={styles.profileContainer}>
+        {/* Profile Card Header */}
+        <div className={styles.profileCard}>
+          {/* Avatar Container */}
         <div className={styles.avatarContainer}>
-          <UserIcon iconUrl={avatarUrl} userName={displayName} className={styles.profileAvatar} />
+          <UserIcon iconUrl={avatarUrl} userName={displayName} className={styles.profileAvatar} priority />
         </div>
 
         {/* Profile Info */}
@@ -334,6 +335,7 @@ function Profile() {
         )}
       </div>
     </div>
+  </div>
   );
 }
 
