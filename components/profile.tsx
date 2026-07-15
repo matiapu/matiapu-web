@@ -25,6 +25,7 @@ function Profile() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"posts" | "likes" | "history">("posts");
 
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
