@@ -35,28 +35,40 @@ function Page({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isPolitician, setIsPolitician] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // 議員ユーザーがアクセスした場合は、投稿作成画面へリダイレクト
+  // ログイン状態とロール（議員かどうか）の判定
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
           const profile = await getUserProfile(user.uid);
+          setCurrentUser({ uid: user.uid, ...profile });
           if (profile?.userType === 'politician') {
-            router.push('/politicians/posts/create');
+            setIsPolitician(true);
+          } else {
+            setIsPolitician(false);
           }
         } catch (e) {
           console.error("Failed to check user role:", e);
         }
+      } else {
+        setCurrentUser(null);
+        setIsPolitician(false);
       }
+      setAuthChecked(true);
     });
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   // 1. データベースからデータをフェッチ & 必要に応じて自動シードを実行
   useEffect(() => {
+    if (!authChecked) return;
+
     async function fetchData() {
       try {
         // バックグラウンドでSeed APIを叩いて初期データを投入（既に存在する場合もあります）
@@ -86,13 +98,13 @@ function Page({ params }: PageProps) {
         );
 
         // UIコンポーネント(PostCard)が期待するフォーマットにマッピング (非同期対応)
-        const uid = auth.currentUser?.uid || "user1";
+        const uid = currentUser?.uid || "user1";
 
         // ユーザーのマッチ情報を取得して、BADした議員を特定する
         let badPoliticianUids: string[] = [];
-        if (auth.currentUser) {
+        if (currentUser && !isPolitician) {
           try {
-            const matches = await getMatchesForUser(auth.currentUser.uid);
+            const matches = await getMatchesForUser(uid);
             badPoliticianUids = matches
               .filter(m => m.user_action === 'bad')
               .map(m => m.politician_uid);
@@ -134,10 +146,15 @@ function Page({ params }: PageProps) {
           })
         );
 
-        // 議員ユーザーの投稿のみ表示、かつ自分がバッドした議員の投稿を除外
-        const filteredPosts = mappedPosts.filter(p => 
-          p.authorUserType === 'politician' && !badPoliticianUids.includes(p.userID)
-        );
+        // 議員ユーザーの場合は自分の投稿のみを表示し、市民の場合は議員ユーザー全体の投稿からバッドしたものを除外して表示
+        const filteredPosts = mappedPosts.filter(p => {
+          if (isPolitician) {
+            return p.userID === uid;
+          } else {
+            return p.authorUserType === 'politician' && !badPoliticianUids.includes(p.userID);
+          }
+        });
+
         setPosts(filteredPosts);
       } catch (err) {
         console.error("Error fetching posts data from Firestore:", err);
@@ -146,10 +163,11 @@ function Page({ params }: PageProps) {
       }
     }
     fetchData();
-  }, []);
+  }, [authChecked, currentUser, isPolitician]);
 
   // 2. 初期ロード完了時にURLの ID に応じたカードへスクロール
   useEffect(() => {
+    setIsCompleted(false);
     if (loading || posts.length === 0) return;
 
     const index = posts.findIndex(p => String(p.id) === id || p.postID === id);
@@ -342,39 +360,74 @@ function Page({ params }: PageProps) {
     return <div className={styles.loading}>投稿を読み込み中...</div>;
   }
 
-  if (isCompleted || posts.length === 0) {
-    return <NoMorePosts />;
-  }
-
   const currentPost = posts[activeIndex] || posts[0];
 
   return (
     <div className={styles.container}>
-      {/* カルーセルコンテナ - 手動スワイプを無効化するため overflowX: 'hidden' */}
-      <div 
-        className={styles.scrollContainer} 
-        ref={scrollContainerRef}
-        onScroll={handleScroll}
-        style={{ overflowX: 'hidden' }}
-      >
-        {posts.map((post) => (
+      {isCompleted || posts.length === 0 ? (
+        <NoMorePosts />
+      ) : (
+        <>
+          {/* カルーセルコンテナ */}
           <div 
-            key={post.id} 
-            className={styles.cardWrapper}
-            ref={el => { cardRefs.current[post.id] = el; }}
+            className={styles.scrollContainer} 
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            style={{ overflowX: isPolitician ? 'auto' : 'hidden' }}
           >
-            {/* 手動次・戻るを禁止するため矢印ボタンは表示しません */}
-            <PostCard post={post} />
-          </div>
-        ))}
-      </div>
+            {posts.map((post, idx) => (
+              <div 
+                key={post.id} 
+                className={styles.cardWrapper}
+                ref={el => { cardRefs.current[post.id] = el; }}
+              >
+                {/* 議員ユーザーの場合は前後のナビゲーションボタンを表示する */}
+                {isPolitician && idx > 0 && (
+                  <button 
+                    className={`${styles.navButton} ${styles.prevButton}`} 
+                    onClick={() => scrollToPost(idx - 1)}
+                    aria-label="前の投稿へ"
+                  >
+                    ‹
+                  </button>
+                )}
 
-      {/* アクションエリア (コメント禁止対応 + スキップボタン追加) */}
-      <div className={styles.Politician_NiceBadButton}>
-        <BadButton onClick={handleDislike} isDisliked={currentPost.isDisliked} />
-        <SkipButton onClick={handleSkip} />
-        <NiceButton onClick={handleLike} isLiked={currentPost.isLiked} />
-      </div>
+                <PostCard post={post} />
+
+                {isPolitician && idx < posts.length - 1 && (
+                  <button 
+                    className={`${styles.navButton} ${styles.nextButton}`} 
+                    onClick={() => scrollToPost(idx + 1)}
+                    aria-label="次の投稿へ"
+                  >
+                    ›
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* アクションエリア */}
+          {!isPolitician && (
+            <div className={styles.Politician_NiceBadButton}>
+              <BadButton onClick={handleDislike} isDisliked={currentPost.isDisliked} />
+              <SkipButton onClick={handleSkip} />
+              <NiceButton onClick={handleLike} isLiked={currentPost.isLiked} />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 議員ユーザー向けの浮遊「＋」投稿作成ボタン */}
+      {isPolitician && (
+        <button 
+          className={styles.createPostFloatingBtn} 
+          onClick={() => router.push('/politicians/posts/create')}
+          title="新規投稿作成"
+        >
+          ＋
+        </button>
+      )}
     </div>
   );
 }

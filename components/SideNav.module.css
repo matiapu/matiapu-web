@@ -85,3 +85,63 @@
   opacity: 1;
   transform: translateX(0);
 }
+
+@media (max-width: 480px) {
+  .sideNav {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 64px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    padding-top: 0;
+    border-right: none;
+    border-top: 1px solid #e5e5e5;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    border-bottom-right-radius: 0;
+    transition: none;
+  }
+
+  .sideNav:hover {
+    width: 100%;
+  }
+
+  .navItem {
+    width: auto;
+    height: 100%;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .iconImage {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+  }
+
+  .label {
+    opacity: 1;
+    transform: none;
+    font-size: 10px;
+    font-weight: 600;
+    color: #666666;
+  }
+
+  .sideNav:hover .label {
+    opacity: 1;
+    transform: none;
+  }
+
+  .logoutBtn {
+    text-align: center;
+  }
+}

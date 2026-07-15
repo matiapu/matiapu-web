@@ -59,8 +59,8 @@ export async function getShelter(shelterId: string): Promise<Shelter | null> {
     if (docSnap.exists()) {
       const data = docSnap.data();
       return {
-        id: docSnap.id,
-        ...data
+        ...data,
+        id: docSnap.id
       } as Shelter;
     }
     return null;
@@ -120,8 +120,8 @@ export async function getShelters(): Promise<Shelter[]> {
     const shelters: Shelter[] = [];
     querySnapshot.forEach((docSnap) => {
       shelters.push({
-        id: docSnap.id,
-        ...docSnap.data()
+        ...docSnap.data(),
+        id: docSnap.id
       } as Shelter);
     });
     return shelters;

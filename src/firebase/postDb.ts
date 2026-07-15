@@ -95,8 +95,8 @@ export async function getPost(postId: string): Promise<Post | null> {
     if (docSnap.exists()) {
       const data = docSnap.data();
       return {
-        id: docSnap.id,
-        ...data
+        ...data,
+        id: docSnap.id
       } as Post;
     }
     return null;
@@ -198,8 +198,8 @@ export async function getPosts(options: GetPostsOptions = {}): Promise<Post[]> {
     let posts: Post[] = [];
     querySnapshot.forEach((docSnap) => {
       posts.push({
-        id: docSnap.id,
-        ...docSnap.data()
+        ...docSnap.data(),
+        id: docSnap.id
       } as Post);
     });
 

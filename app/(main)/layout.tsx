@@ -5,7 +5,8 @@ import { useRouter, usePathname } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/src/firebase/firebase";
 import { getUserProfile } from "@/src/firebase/userDb";
-import Header from "@/components/Header";
+import SideNav from "@/components/SideNav";
+import styles from "./layout.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
@@ -61,9 +62,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div>
-      <main>
-        {!isTopPage && <Header />}
+    <div className={styles.container}>
+      <SideNav />
+      <main className={styles.mainContent}>
         {children}
       </main>
     </div>
