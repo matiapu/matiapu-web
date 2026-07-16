@@ -473,11 +473,7 @@ function CategoryMap() {
   const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isInteracted, setIsInteracted] = useState(false);
   const [userDistrictGeometry, setUserDistrictGeometry] = useState<any>(null);
-
-  useEffect(() => {
-    if (isInteracted) return;
 
 
   // マップの表示中心とズーム状態を管理
@@ -850,6 +846,7 @@ function CategoryMap() {
           >
             <MapController center={mapCenter} zoom={mapZoom} />
             <PrefectureLayers locations={locations} selectedCategory={selectedCategory} />
+            <DistrictLayers userAddress={userAddress} onDistrictLoad={setUserDistrictGeometry} />
             <AddressGeocoder address={userAddress} onGeocode={handleGeocode} skip={hasEarthquake} />
             {/* フィルタリングされた配列をループしてピンを配置 */}
             {filteredLocations.map((data, index) => {
@@ -899,72 +896,11 @@ function CategoryMap() {
               >
                 ✕
               </button>
-            );
-          })}
-        </div>
-        
-        <APIProvider apiKey={API_KEY || ""}>
-          <div className={`${styles.mapContainer} ${isInteracted ? styles.mapContainerFullscreen : ""}`}>
-            
-            <Map
-              defaultCenter={{ lat: 35.681228, lng: 139.767052 }}
-              defaultZoom={14}
-              mapId="DEMO_MAP_ID"
-              onClick={() => setSelectedLocation(null)}
-              mapTypeControl={false}
-              fullscreenControl={false}
-              streetViewControl={false}
-              zoomControl={true}
-            >
-              <MapController center={mapCenter} zoom={mapZoom} />
-              <PrefectureLayers locations={locations} selectedCategory={selectedCategory} />
-              <DistrictLayers userAddress={userAddress} onDistrictLoad={setUserDistrictGeometry} />
-              <AddressGeocoder address={userAddress} onGeocode={handleGeocode} skip={hasEarthquake} />
-              {/* フィルタリングされた配列をループしてピンを配置 */}
-              {filteredLocations.map((data, index) => {
-                // カテゴリに応じたスタイルを取得（なければdefault）
-                const style = categoryStyles[data.category] || categoryStyles.default;
-                const isSelected = selectedLocation && selectedLocation.lat === data.lat && selectedLocation.lng === data.lng;
-                
-                // ユニークなキーを生成
-                const markerKey = `${data.category}-${data.lat}-${data.lng}-${data.name || index}`;
-
-                return (
-                  <AdvancedMarker
-                    key={markerKey}
-                    position={{ lat: data.lat, lng: data.lng }}
-                    title={data.name}
-                    onClick={(e) => {
-                      if (e.stop) e.stop();
-                      if (e.domEvent && e.domEvent.stopPropagation) {
-                        e.domEvent.stopPropagation();
-                      }
-                      setSelectedLocation(data);
-                    }}
-                  >
-                    <div 
-                       className={`${styles.pinWrapper} ${isSelected ? styles.selectedPin : ''}`}
-                       data-pin="true"
-                    >
-                      <Pin
-                        background={style.background}
-                        borderColor="#FFFFFF"
-                        glyph={style.glyph}
-                        scale={isSelected ? 1.3 : 1.0}
-                      />
-                    </div>
-                  </AdvancedMarker>
-                );
-              })}
-            </Map>
-
-            {/* 右側に表示する詳細カード */}
-            {selectedLocation && (
-              <div ref={cardRef} className={styles.detailCard}>
-                <button 
-                  className={styles.closeButton} 
-                  onClick={() => setSelectedLocation(null)}
-                  aria-label="閉じる"
+              <div className={styles.cardContent}>
+                <h3 className={styles.cardTitle}>{selectedLocation.name}</h3>
+                <span 
+                  className={styles.cardBadge} 
+                  style={{ backgroundColor: (categoryStyles[selectedLocation.category] || categoryStyles.default).background }}
                 >
                   {(categoryStyles[selectedLocation.category] || categoryStyles.default).label}
                 </span>
