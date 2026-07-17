@@ -278,7 +278,7 @@ export default function SignupDetailsPage() {
       if (!response.ok) throw new Error("Zip API response error");
       const data = await response.json();
       
-      if (data.status === 200 && data.results && data.results.length > 0) {
+      if (data.status === 200 && Array.isArray(data.results) && data.results.length > 0) {
         const result = data.results[0];
         setFormData((prev) => ({
           ...prev,
